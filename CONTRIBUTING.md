@@ -11,6 +11,8 @@ To contribute to Slurp, please consider the following guidelines.
   4.1 Deliver or Destroy, that is, if you are not passing a file, Close it.
 
   4.2 Always assume that the downstream is streaming, so return the file as soon as possible.
+  
+  4.3 If you didn't create a channel, never close it.
 
 
 5. Use `gofmt -w -s` before creating pull requests.
