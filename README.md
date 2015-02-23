@@ -112,44 +112,84 @@ project has a slurp file.
 
 Somewhat similar to `go test` Slurp expects a `Slurp(*slurp.Build)` function from your project, this is typically put in a file with the `// +build slurp` build tag.
 
-`cat slurp.go`
+```sh
+github.com/omeid/slurp/examples (master) $ cat example.go
+```
 ```go
-// +build slurp
-
 package main //Anything, even main.
 
-import "github.com/omeid/slurp"
+import (
+  "errors"
+  "time"
+
+  "github.com/omeid/slurp"
+)
 
 func Slurp(b *slurp.Build) {
-	b.Task("example-task", nil, func(c *slurp.C) error {
-		c.Info("Hello!")
-		return nil
-	})
+  b.Task("turtle", nil, func(c *slurp.C) error {
+    c.Info("Hello!")
+    c.Warn("I will take at least 3 seconds.")
+    time.Sleep(3 * time.Second)
+    c.Info("Well, here is a line.")
+    return errors.New("I died.")
+  })
 
-	b.Task("default", []string{"example-task"}, func(c *slurp.C) error {
-		//This task is run when slurp is called without any task arguments.
-		c.Info("Hello!")
-		return nil
-	})
+  b.Task("rabbit", nil, func(c *slurp.C) error {
+    c.Info("Hello, I am the the fast one.")
+    for i := 0; i < 4; i++ {
+      c.Infof("This is the %d line of my work.", i)
+      time.Sleep(500 * time.Millisecond)
+    }
+    return nil
+  })
+
+  b.Task("default", []string{"turtle", "rabbit"}, func(c *slurp.C) error {
+    //This task is run when slurp is called with any task parameter.
+    c.Info("Default task is running.")
+    return nil
+  })
 }
 ```
-```bash
-$ slurp 
-09:12:48 Running: default
-09:12:48 default: Starting.
-09:12:48 default: Waiting for example-task
-09:12:48 default: example-task: Starting.
-09:12:48 default: example-task: Hello!
-09:12:48 default: example-task: Done.
-09:12:48 default: Hello!
-09:12:48 default: Done.
 
-$ slurp example-task
-09:13:02 Running: example-task
-09:13:02 example-task: Starting.
-09:13:02 example-task: Hello!
-09:13:02 example-task: Done.
+```sh
+github.com/omeid/slurp/examples (master) $ slurp
+09:22:49 [INFO] Running: default 
+09:22:49 [INFO] Starting. 
+09:22:49 [INFO] Waiting for turtle 
+09:22:49 [INFO] turtle: Starting. 
+09:22:49 [INFO] Waiting for rabbit 
+09:22:49 [INFO] rabbit: Starting. 
+09:22:49 [INFO] rabbit: Hello, I am the the fast one. 
+09:22:49 [INFO] rabbit: This is the 0 line of my work. 
+09:22:49 [INFO] turtle: Hello! 
+09:22:49 [WARN] turtle: I will take at least 3 seconds. 
+09:22:49 [INFO] rabbit: This is the 1 line of my work. 
+09:22:50 [INFO] rabbit: This is the 2 line of my work. 
+09:22:50 [INFO] rabbit: This is the 3 line of my work. 
+09:22:51 [INFO] rabbit: Done. 
+09:22:52 [INFO] turtle: Well, here is a line. 
+09:22:52 [ERR!] turtle: I died. 
+09:22:52 [ERR!] Task Canacled. Reason: Failed Dependency (turtle).
+
+github.com/omeid/slurp/examples (master) $ slurp turtle
+09:27:19 [INFO] Running: turtle 
+09:27:19 [INFO] Starting. 
+09:27:19 [INFO] Hello! 
+09:27:19 [WARN] I will take at least 3 seconds. 
+09:27:22 [INFO] Well, here is a line. 
+09:27:22 [ERR!] I died. 
+
+github.com/omeid/slurp/examples (master) $ slurp rabbit
+09:27:25 [INFO] Running: rabbit 
+09:27:25 [INFO] Starting. 
+09:27:25 [INFO] Hello, I am the the fast one. 
+09:27:25 [INFO] This is the 0 line of my work. 
+09:27:26 [INFO] This is the 1 line of my work. 
+09:27:26 [INFO] This is the 2 line of my work. 
+09:27:27 [INFO] This is the 3 line of my work. 
+09:27:27 [INFO] Done. 
 ```
+
 ### Contributing
 
 Please see [Contributing](CONTRIBUTING.md)

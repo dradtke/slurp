@@ -2,6 +2,7 @@ package slurp
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -26,12 +27,6 @@ type taskerror struct {
 
 func (t *task) run(c *C) error {
 
-  var prefix string
-  if t.name != "default" {
-	prefix = fmt.Sprintf("%s: ", t.name)
-  }
-	c = &C{c.New(prefix)}
-
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -52,11 +47,16 @@ func (t *task) run(c *C) error {
 			default:
 
 				wg.Add(1)
-				go func(t *task) {
+				go func(t *task, name string) {
 					defer wg.Done()
-					c.Infof("Waiting for %s", t.name)
-					errs <- taskerror{name, t.run(c)}
-				}(t)
+					c.Infof("Waiting for %s", name)
+					c := &C{c.New(fmt.Sprintf("%s: ", name))}
+					err := t.run(c)
+					if err != nil {
+						c.Error(err)
+					}
+					errs <- taskerror{name, err}
+				}(t, name)
 			}
 		}
 		wg.Wait()
@@ -67,13 +67,12 @@ func (t *task) run(c *C) error {
 	for err := range errs {
 		if err.err != nil {
 			cancel <- struct{}{}
-			c.Error(err.err)
 			failedjobs = append(failedjobs, err.name)
 		}
 	}
 
 	if failedjobs != nil {
-		return fmt.Errorf("Task Canacled. Reason: Failed Dependency (%s).", failedjobs)
+		return fmt.Errorf("Task Canacled. Reason: Failed Dependency (%s).", strings.Join(failedjobs, ","))
 	}
 
 	//t.called = true
