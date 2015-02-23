@@ -43,16 +43,16 @@ type Printer interface {
 }
 
 type logger struct {
-	Printer
+	printer Printer
 	prefix string
 }
 
 func (l *logger) New(prefix string) Log {
-	return &logger{l.Printer, l.prefix + prefix}
+	return &logger{l.printer, l.prefix + prefix}
 }
 
 func (l *logger) Info(v ...interface{}) {
-	l.Printer.Printf("[INFO] %s%s ", l.prefix, fmt.Sprint(v...))
+	l.printer.Printf("[INFO] %s%s ", l.prefix, fmt.Sprint(v...))
 }
 
 func (l *logger) Infof(format string, v ...interface{}) {
@@ -60,7 +60,7 @@ func (l *logger) Infof(format string, v ...interface{}) {
 }
 
 func (l *logger) Warn(v ...interface{}) {
-	l.Printer.Printf(color.YellowString("[WARN] %s%s ", l.prefix, fmt.Sprint(v...)))
+	l.printer.Printf(color.YellowString("[WARN] %s%s ", l.prefix, fmt.Sprint(v...)))
 }
 
 func (l *logger) Warnf(format string, v ...interface{}) {
@@ -68,7 +68,7 @@ func (l *logger) Warnf(format string, v ...interface{}) {
 }
 
 func (l *logger) Error(v ...interface{}) {
-	l.Printer.Printf(color.RedString("[ERR!] %s%s ", l.prefix, fmt.Sprint(v...)))
+	l.printer.Printf(color.RedString("[ERR!] %s%s ", l.prefix, fmt.Sprint(v...)))
 }
 
 func (l *logger) Errorf(format string, v ...interface{}) {
@@ -76,7 +76,7 @@ func (l *logger) Errorf(format string, v ...interface{}) {
 }
 
 func (l *logger) Fatal(v ...interface{}) {
-	l.Printer.Printf(color.RedString("[FATAL] %s%s ", l.prefix, fmt.Sprint(v...)))
+	l.printer.Printf(color.RedString("[FATAL] %s%s ", l.prefix, fmt.Sprint(v...)))
 	os.Exit(1)
 }
 

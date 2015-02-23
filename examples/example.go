@@ -28,9 +28,7 @@ func Slurp(b *slurp.Build) {
 
 	b.Task("default", []string{"slow", "rabbit"}, func(c *slurp.C) error {
 		//This task is run when slurp is called with any task parameter.
-		c.Info("Hello!")
-
-		c.Fatal("The hell broke lose. I am bailing.")
+		c.Info("Default task is running.")
 		return nil
 	})
 }
