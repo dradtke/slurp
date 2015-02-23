@@ -36,7 +36,7 @@ func main() {
   go func() {
 	sig := <-interrupts
 	// stop watches and clean up.
-	slurp.Printf("captured %v, stopping build and exiting..\n", sig)
+	slurp.Warnf("captured %v, stopping build and exiting..\n", sig)
 	slurp.Close() 
 	os.Exit(1)
   }()
@@ -49,7 +49,7 @@ func main() {
 	tasks = []string{"default"}
   }
 
-  slurp.Printf("Running: %s", strings.Join(tasks, "," ))
+  slurp.Infof("Running: %s", strings.Join(tasks, "," ))
   slurp.Run(slurp.C, tasks...)
   slurp.Close() 
 }

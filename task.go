@@ -26,7 +26,11 @@ type taskerror struct {
 
 func (t *task) run(c *C) error {
 
-	c = &C{c.New(fmt.Sprintf("%s: ", t.name))}
+  var prefix string
+  if t.name != "default" {
+	prefix = fmt.Sprintf("%s: ", t.name)
+  }
+	c = &C{c.New(prefix)}
 
 	t.lock.Lock()
 	defer t.lock.Unlock()
