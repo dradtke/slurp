@@ -20,7 +20,7 @@ func Slurp(b *slurp.Build) {
 	b.Task("rabbit", nil, func(c *slurp.C) error {
 		c.Info("Hello, I am the the fast one.")
 		for i := 0; i < 6; i++ {
-			c.Printf("This is the %d line of my work.", i)
+			c.Infof("This is the %d line of my work.", i)
 			time.Sleep(500 * time.Millisecond)
 		}
 		return nil

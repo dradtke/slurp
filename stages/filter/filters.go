@@ -1,7 +1,6 @@
 package filter
 
 import (
-
 	"github.com/omeid/slurp"
 	"github.com/omeid/slurp/tools/glob"
 )
@@ -35,9 +34,9 @@ func List(c *slurp.C) slurp.Stage {
 	return DoFunc(c, func(c *slurp.C, f slurp.File) slurp.File {
 		s, err := f.Stat()
 		if err != nil {
-			c.Print("Can't get file name.")
+			c.Error("Can't get File Stat name.")
 		} else {
-			c.Printf("slurp.File: %+v Name: %s", f, s.Name())
+			c.Infof("slurp.File: %+v Name: %s", f, s.Name())
 		}
 		return f
 	})
@@ -49,7 +48,7 @@ func Filter(c *slurp.C, pattern string) slurp.Stage {
 	return FilterFunc(c, func(f slurp.File) bool {
 		s, err := f.Stat()
 		if err != nil {
-			c.Print("Can't get file name.")
+			c.Errorf("Can't get File Stat: %s", err.Error())
 			return false
 		}
 		m, err := glob.Match(pattern, s.Name())

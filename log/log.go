@@ -13,9 +13,6 @@ import (
 var Rate = time.Millisecond * 300
 
 type Log interface {
-	Print(v ...interface{})
-	Printf(format string, v ...interface{})
-
 	Info(v ...interface{})
 	Infof(format string, v ...interface{})
 
@@ -54,16 +51,8 @@ func (l *logger) New(prefix string) Log {
 	return &logger{l.Printer, l.prefix + prefix}
 }
 
-func (l *logger) Print(v ...interface{}) {
-	l.Printer.Printf("%s%s", l.prefix, fmt.Sprint(v...))
-}
-
-func (l *logger) Printf(format string, v ...interface{}) {
-	l.Print(fmt.Sprintf(format, v...))
-}
-
 func (l *logger) Info(v ...interface{}) {
-	l.Printer.Printf(color.GreenString("%s[INFO] %s ", l.prefix, fmt.Sprint(v...)))
+	l.Printer.Printf("[INFO] %s%s ", l.prefix, fmt.Sprint(v...))
 }
 
 func (l *logger) Infof(format string, v ...interface{}) {
@@ -71,7 +60,7 @@ func (l *logger) Infof(format string, v ...interface{}) {
 }
 
 func (l *logger) Warn(v ...interface{}) {
-	l.Printer.Printf(color.YellowString("%s[WARN] %s ", l.prefix, fmt.Sprint(v...)))
+	l.Printer.Printf(color.YellowString("[WARN] %s%s ", l.prefix, fmt.Sprint(v...)))
 }
 
 func (l *logger) Warnf(format string, v ...interface{}) {
@@ -79,7 +68,7 @@ func (l *logger) Warnf(format string, v ...interface{}) {
 }
 
 func (l *logger) Error(v ...interface{}) {
-	l.Printer.Printf(color.RedString("%s[ERR!] %s ", l.prefix, fmt.Sprint(v...)))
+	l.Printer.Printf(color.RedString("[ERR!] %s%s ", l.prefix, fmt.Sprint(v...)))
 }
 
 func (l *logger) Errorf(format string, v ...interface{}) {
@@ -87,7 +76,7 @@ func (l *logger) Errorf(format string, v ...interface{}) {
 }
 
 func (l *logger) Fatal(v ...interface{}) {
-	l.Printer.Printf(color.RedString("%s[FATAL] %s ", l.prefix, fmt.Sprint(v...)))
+	l.Printer.Printf(color.RedString("[FATAL] %s%s ", l.prefix, fmt.Sprint(v...)))
 	os.Exit(1)
 }
 

@@ -31,7 +31,7 @@ The Context provides helpful logging functions. _it may be extended in the futur
 b.Task("example-task", []string{"list", "of", "dependency", "tasks"},
 
   func(c *slurp.C) error {
-    c.Println("Hello from example-task!")
+    c.Info("Hello from example-task!")
   },
 
 )
@@ -112,7 +112,7 @@ func Slurp(b *slurp.Build) {
 
 	b.Task("default", []string{"example-task"}, func(c *slurp.C) error {
 		//This task is run when slurp is called without any task arguments.
-		c.Print("Hello!")
+		c.Info("Hello!")
 		return nil
 	})
 }
