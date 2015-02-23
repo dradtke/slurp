@@ -20,11 +20,6 @@ type task struct {
 
 type taskstack map[string]*task
 
-type taskerror struct {
-	name string
-	err  error
-}
-
 func (t *task) run(c *C) error {
 
 	t.lock.Lock()
@@ -35,11 +30,11 @@ func (t *task) run(c *C) error {
 	//	}
 	c.Info("Starting.")
 
-	errs := make(chan taskerror)
+	failed := make(chan string)
 	cancel := make(chan struct{}, len(t.deps))
 	var wg sync.WaitGroup
-	go func(errs chan taskerror) {
-		defer close(errs)
+	go func(failed chan string) {
+		defer close(failed)
 		for name, t := range t.deps {
 			select {
 			case <-cancel:
@@ -54,24 +49,22 @@ func (t *task) run(c *C) error {
 					err := t.run(c)
 					if err != nil {
 						c.Error(err)
+						failed <- name
 					}
-					errs <- taskerror{name, err}
 				}(t, name)
 			}
 		}
 		wg.Wait()
-	}(errs)
+	}(failed)
 
 	var failedjobs []string
 
-	for err := range errs {
-		if err.err != nil {
+	for job := range failed {
 			cancel <- struct{}{}
-			failedjobs = append(failedjobs, err.name)
-		}
+			failedjobs = append(failedjobs, job)
 	}
 
-	if failedjobs != nil {
+	if len(failedjobs) > 0 {
 		return fmt.Errorf("Task Canacled. Reason: Failed Dependency (%s).", strings.Join(failedjobs, ","))
 	}
 
