@@ -72,8 +72,8 @@ func Src(c *slurp.C, globs ...string) slurp.Pipe {
 	return pipe
 }
 
-// Dest writes the files from the input channel to the dst folder and pass
-// the files to output channel for further processing.
+// Dest writes the files from the input channel to the dst folder and closes the files.
+// It never returns Files.
 func Dest(c *slurp.C, dst string) slurp.Stage {
 	return func(files <-chan slurp.File, out chan<- slurp.File) {
 
@@ -98,23 +98,22 @@ func Dest(c *slurp.C, dst string) slurp.Stage {
 
 			if !s.IsDir() {
 
-				realfile, err := os.Create(filepath.Join(dst, realpath))
-
-				if err != nil {
-					c.Println(err)
-					return
-				}
-
 				wg.Add(1)
-				go func(realfile *os.File, file io.Reader) {
-					defer realfile.Close()
-					defer wg.Done()
+				go func(file slurp.File) {
 
+					defer wg.Done()
+					defer file.Close()
+
+					realfile, err := os.Create(filepath.Join(dst, realpath))
+					if err != nil {
+						c.Println(err)
+						return
+					}
 					io.Copy(realfile, file)
 					realfile.Close()
-				}(realfile, file)
+
+				}(file)
 			}
-			out <- file
 		}
 
 	}
