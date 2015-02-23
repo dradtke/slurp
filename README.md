@@ -25,7 +25,7 @@ Slurp is made of two integral parts:
 The slurp toolkit provides a task harness that you can register tasks and dependencies, you can then run these tasks with slurp runner.
 
 A task is any function that accepts a pointer to `slurp.C` (Slurp Context) and returns an error.  
-The Context provides helpful logging functions. _it may be extended in the future_.
+The Context provides logging functions. _it may be extended in the future_.
 
 ```go
 b.Task("example-task", []string{"list", "of", "dependency", "tasks"},
@@ -55,16 +55,32 @@ b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
 })
 ```
 
+or the same code shorter
+
+```go
+b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
+    //Read .tpl files from frontend/template.
+    return fs.Src(c, "frontend/template/*.tpl").Then(
+      //Compile them.
+      template.HTML(c, TemplateData),
+      //Write the result to disk.
+      fs.Dest(c, "./public"),
+      )
+})
+```
+
+and another example,
+
 ```go
 // Download deps.
 b.Task("deps", nil, func(c *slurp.C) error {
     return web.Get(c,
       "https://github.com/twbs/bootstrap/archive/v3.3.2.zip",
       "https://github.com/FortAwesome/Font-Awesome/archive/v4.3.0.zip",
-    ).Pipe(
+    ).Then(
       archive.Unzip(c),
       fs.Dest(c, "./frontend/libs/"),
-    ).Wait()
+    )
 
 })
 ```
@@ -79,7 +95,7 @@ Currently the following _stages_ are provided with Slurp:
 - [web](https://godoc.org/github.com/omeid/slurp/stages/web/)
 
 
-You can find more at [slurp-contrib](https://github.com/slurp-contrib). gin, gcss, ace, watch, resources (embed), to name a few.
+You can find more at [slurp-contrib](https://github.com/slurp-contrib). gin, gcss, ace, watch, resources (embed), and livereload to name a few.
 
 
 ### 2. The Runner (cmd/slurp)

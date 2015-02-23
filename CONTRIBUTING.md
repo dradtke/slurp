@@ -14,6 +14,8 @@ To contribute to Slurp, please consider the following guidelines.
   
   4.3 If you didn't create a channel, never close it.
 
+  4.4 Don't put newlines in your output, if it must go in two lines, issue two log events. `"\n` 
+
 
 5. Use `gofmt -w -s` before creating pull requests.
 
