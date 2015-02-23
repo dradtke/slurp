@@ -39,13 +39,13 @@ func Src(c *slurp.C, globs ...string) slurp.Pipe {
 	files, err := glob.Glob(globs...)
 
 	if err != nil {
-		c.Println(err)
+		c.Error(err)
 		close(pipe)
 	}
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		c.Println(err)
+		c.Error(err)
 		close(pipe)
 		return pipe
 	}
@@ -58,7 +58,7 @@ func Src(c *slurp.C, globs ...string) slurp.Pipe {
 
 			f, err := Read(matchpair.Name)
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				continue
 			}
 
@@ -86,13 +86,13 @@ func Dest(c *slurp.C, dst string) slurp.Stage {
 			path := filepath.Join(dst, filepath.Dir(realpath))
 			err := os.MkdirAll(path, 0700)
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				return
 			}
 
 			s, err := file.Stat()
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				return
 			}
 
@@ -106,7 +106,7 @@ func Dest(c *slurp.C, dst string) slurp.Stage {
 
 					realfile, err := os.Create(filepath.Join(dst, realpath))
 					if err != nil {
-						c.Println(err)
+						c.Error(err)
 						return
 					}
 					io.Copy(realfile, file)

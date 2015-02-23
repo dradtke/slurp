@@ -29,7 +29,7 @@ func Unzip(c *slurp.C) slurp.Stage {
 
 				r, err := zip.NewReader(bytes.NewReader(raw), int64(len(raw)))
 				if err != nil {
-					c.Println(err)
+					c.Error(err)
 					return
 				}
 

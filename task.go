@@ -34,7 +34,7 @@ func (t *task) run(c *C) error {
 	//if t.called {
 	//		return nil
 	//	}
-	c.Println("Starting.")
+	c.Info("Starting.")
 
 	errs := make(chan taskerror)
 	cancel := make(chan struct{}, len(t.deps))
@@ -50,7 +50,7 @@ func (t *task) run(c *C) error {
 				wg.Add(1)
 				go func(t *task) {
 					defer wg.Done()
-					c.Printf("Waiting for %s", t.name)
+					c.Infof("Waiting for %s", t.name)
 					errs <- taskerror{name, t.run(c)}
 				}(t)
 			}
@@ -63,7 +63,7 @@ func (t *task) run(c *C) error {
 	for err := range errs {
 		if err.err != nil {
 			cancel <- struct{}{}
-			c.Println(err.err)
+			c.Error(err.err)
 			failedjobs = append(failedjobs, err.name)
 		}
 	}
@@ -75,7 +75,7 @@ func (t *task) run(c *C) error {
 	//t.called = true
 	err := t.task(c)
 	if err == nil {
-		c.Println("Done.")
+		c.Info("Done.")
 	}
 
 	return err

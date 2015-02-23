@@ -31,13 +31,13 @@ func Run(c *slurp.C, bin string, args ...string) slurp.Stage {
 			cmd.Stdin = file.Reader
 			content, err := cmd.StdoutPipe()
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				return
 			}
 
 			err = cmd.Start()
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				return
 			}
 

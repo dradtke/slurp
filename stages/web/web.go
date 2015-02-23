@@ -33,15 +33,15 @@ func Get(c *slurp.C, urls ...string) slurp.Pipe {
 
 		for _, url := range urls {
 
-			c.Printf("Downloading %s", url)
+			c.Info("Downloading %s", url)
 			resp, err := http.Get(url)
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				break
 			}
 
 			if resp.StatusCode < 200 || resp.StatusCode > 399 {
-				c.Printf("%s (%s)", resp.Status, url)
+				c.Error("%s (%s)", resp.Status, url)
 				continue
 			}
 

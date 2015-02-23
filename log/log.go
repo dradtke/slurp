@@ -7,21 +7,26 @@ import (
 	"os"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	"github.com/fatih/color"
 )
 
 var Rate = time.Millisecond * 300
 
-var Flags = log.Ltime
-
 type Log interface {
 	Print(v ...interface{})
 	Printf(format string, v ...interface{})
-	Println(v ...interface{})
+
+	Info(v ...interface{})
+	Infof(format string, v ...interface{})
+
+	Warn(v ...interface{})
+	Warnf(format string, v ...interface{})
+
+	Error(v ...interface{})
+	Errorf(format string, v ...interface{})
 
 	Fatal(v ...interface{})
 	Fatalf(format string, v ...interface{})
-	Fatalln(v ...interface{})
 
 	ReadProgress(io.Reader, string, int64) io.ReadCloser
 	Counter(string, int) *Counter
@@ -29,128 +34,63 @@ type Log interface {
 	New(string) Log
 }
 
+var Flags = log.Ltime
+
 func New() Log {
 	l := log.New(os.Stdout, "", Flags)
 	return &logger{l, ""}
 }
 
-type printFormater interface {
-	Printf(format string, v ...interface{})
-	Fatalf(format string, v ...interface{})
-
-	Flags() int //Just to distingush from Log.
+type Printer interface {
+	Printf(string, ...interface{})
 }
 
 type logger struct {
-	printFormater
+	Printer
 	prefix string
 }
 
 func (l *logger) New(prefix string) Log {
-	return &logger{l.printFormater, l.prefix + prefix}
-}
-
-func (l *logger) Printf(format string, v ...interface{}) {
-	l.printFormater.Printf("%s%s", l.prefix, fmt.Sprintf(format, v...))
+	return &logger{l.Printer, l.prefix + prefix}
 }
 
 func (l *logger) Print(v ...interface{}) {
-	l.printFormater.Printf("%s%s", l.prefix, fmt.Sprint(v...))
+	l.Printer.Printf("%s%s", l.prefix, fmt.Sprint(v...))
 }
 
-func (l *logger) Println(v ...interface{}) {
-	l.printFormater.Printf("%s%s", l.prefix, fmt.Sprint(v...))
+func (l *logger) Printf(format string, v ...interface{}) {
+	l.Print(fmt.Sprintf(format, v...))
 }
 
-func (l *logger) Fatalf(format string, v ...interface{}) {
-	l.printFormater.Fatalf("%s%s", l.prefix, fmt.Sprintf(format, v...))
+func (l *logger) Info(v ...interface{}) {
+	l.Printer.Printf(color.GreenString("%s[INFO] %s ", l.prefix, fmt.Sprint(v...)))
+}
+
+func (l *logger) Infof(format string, v ...interface{}) {
+	l.Info(fmt.Sprintf(format, v...))
+}
+
+func (l *logger) Warn(v ...interface{}) {
+	l.Printer.Printf(color.YellowString("%s[WARN] %s ", l.prefix, fmt.Sprint(v...)))
+}
+
+func (l *logger) Warnf(format string, v ...interface{}) {
+	l.Warn(fmt.Sprintf(format, v...))
+}
+
+func (l *logger) Error(v ...interface{}) {
+	l.Printer.Printf(color.RedString("%s[ERR!] %s ", l.prefix, fmt.Sprint(v...)))
+}
+
+func (l *logger) Errorf(format string, v ...interface{}) {
+	l.Error(fmt.Sprintf(format, v...))
 }
 
 func (l *logger) Fatal(v ...interface{}) {
-	l.printFormater.Fatalf("%s%s", l.prefix, fmt.Sprint(v...))
+	l.Printer.Printf(color.RedString("%s[FATAL] %s ", l.prefix, fmt.Sprint(v...)))
+	os.Exit(1)
 }
 
-func (l *logger) Fatalln(v ...interface{}) {
-	l.printFormater.Fatalf("%s%s", l.prefix, fmt.Sprint(v...))
-}
-
-func (l *logger) ReadProgress(r io.Reader, name string, size int64) io.ReadCloser {
-
-	var sizeHuman string
-
-	if size > 0 {
-		sizeHuman = humanize.Bytes(uint64(size))
-	}
-	return &ProgressBar{r, name, size, 0, l, sizeHuman, 0, NewRateLimit(Rate)}
-}
-
-func (l *logger) Counter(name string, size int) *Counter {
-	return &Counter{name, size, 0, "", l, NewRateLimit(Rate / 2)}
-}
-
-type ProgressBar struct {
-	io.Reader
-
-	name string
-	size int64
-
-	done int64
-	l    Log
-
-	sizeHuman string //So we don't calcuate it in every read.
-	last      int64
-
-	limit *ratelimit
-}
-
-func (p *ProgressBar) print() {
-
-	if p.sizeHuman == "" {
-		p.l.Printf("%s [UKN%%] %s of UKN\n", p.name, humanize.Bytes(uint64(p.done)))
-		return
-	}
-	p.l.Printf("%s [%3d%%] %s of %s\n", p.name, p.done*100/p.size, humanize.Bytes(uint64(p.done)), p.sizeHuman)
-}
-func (p *ProgressBar) Read(b []byte) (int, error) {
-	n, err := p.Reader.Read(b)
-	p.done += int64(n)
-
-	if (p.done-p.last) > (p.size/50) && !p.limit.Limit() {
-		p.last = p.done
-		p.print()
-	}
-
-	return n, err
-}
-
-func (p *ProgressBar) Close() error {
-	p.print()
-	c, ok := p.Reader.(io.Closer)
-	if ok {
-		return c.Close()
-	}
-	return nil
-}
-
-type Counter struct {
-	name string
-	size int
-
-	cur  int
-	last string
-	l    Log
-
-	limit *ratelimit
-}
-
-func (c *Counter) Set(s int, last string) {
-	c.cur = s
-	c.last = last
-	if !c.limit.Limit() || c.cur == c.size {
-		c.print()
-	}
-}
-
-func (c *Counter) print() {
-	c.l.Printf("%s [%3d%%] %d of %d %s\n", c.name, c.cur*100/c.size, c.cur, c.size, c.last)
+func (l *logger) Fatalf(format string, v ...interface{}) {
+	l.Fatal(fmt.Sprintf(format, v...))
 }

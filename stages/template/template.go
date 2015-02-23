@@ -24,26 +24,26 @@ func HTML(c *slurp.C, data interface{}) slurp.Stage {
 			_, err := buf.ReadFrom(f.Reader)
 			f.Close()
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				break
 			}
 
 			s, err := f.Stat()
 			if err != nil {
-				c.Println("Can't get file name.")
+			  c.Errorf("Can't get File Stat: %s", err.Error())
 				break
 			}
 
 			template, err := templates.New(s.Name()).Parse(buf.String())
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				break
 			}
 
 			buff := new(bytes.Buffer)
 			err = template.Execute(buff, data)
 			if err != nil {
-			  c.Println(err)
+			  c.Error(err)
 			  break
 			}
 

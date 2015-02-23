@@ -17,10 +17,10 @@ func Concat(c *slurp.C, name string) slurp.Stage {
 		)
 
 		for f := range files {
-			c.Printf("Adding %s to %s", f.Path, name)
+			c.Infof("Adding %s to %s", f.Path, name)
 			n, err := bigfile.ReadFrom(f)
 			if err != nil {
-				c.Println(err)
+				c.Error(err)
 				return
 			}
 			bigfile.WriteRune('\n')

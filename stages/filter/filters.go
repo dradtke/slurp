@@ -54,7 +54,7 @@ func Filter(c *slurp.C, pattern string) slurp.Stage {
 		}
 		m, err := glob.Match(pattern, s.Name())
 		if err != nil {
-			c.Println(err)
+			c.Error(err)
 		}
 		return m
 	})
