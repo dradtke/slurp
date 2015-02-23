@@ -106,13 +106,13 @@ import "github.com/omeid/slurp"
 
 func Slurp(b *slurp.Build) {
 	b.Task("example-task", nil, func(c *slurp.C) error {
-		c.Println("Hello!")
+		c.Info("Hello!")
 		return nil
 	})
 
 	b.Task("default", []string{"example-task"}, func(c *slurp.C) error {
 		//This task is run when slurp is called without any task arguments.
-		c.Println("Hello!")
+		c.Print("Hello!")
 		return nil
 	})
 }
