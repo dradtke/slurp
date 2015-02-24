@@ -11,12 +11,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 var (
-	gopath    = os.Getenv("GOPATH")
-	gopathsrc = filepath.Join(gopath, "src")
-	cwd       string
+	gopaths = strings.Split(os.Getenv("GOPATH"), ":")
+	cwd     string
 
 	build     = flag.Bool("build", false, "build the current build as slurp-bin")
 	install   = flag.Bool("install", false, "install current slurp.Go as slurp.PKG.")
@@ -30,7 +30,7 @@ func main() {
 
 	flag.Parse()
 
-	if gopath == "" {
+	if len(gopaths) == 0 || gopaths[0] == "" {
 		log.Fatal("$GOPATH must be set.")
 	}
 
@@ -109,13 +109,23 @@ func generate() (string, error) {
 		return "", err
 	}
 
-	//The target package import path.
-	pkgpath, err := filepath.Rel(gopathsrc, cwd)
-	if err != nil {
-		return "", err
+	// find the correct gopath
+	var gopathsrc string
+	var pkgpath string
+	for _, gopath := range gopaths {
+		gopathsrcTest := filepath.Join(gopath, "src")
+		// the target package import path.
+		pkgpath, err = filepath.Rel(gopathsrcTest, cwd)
+		if err != nil {
+			return "", err
+		}
+		if base := filepath.Base(pkgpath); base == "." || base == ".." {
+			continue // cwd is outside this gopath
+		}
+		gopathsrc = gopathsrcTest
 	}
 
-	if base := filepath.Base(pkgpath); base == "." || base == ".." {
+	if gopathsrc == "" {
 		return "", errors.New("forbidden path. Your CWD must be under $GOPATH/src.")
 	}
 
@@ -193,7 +203,7 @@ func generate() (string, error) {
 		return path, err
 	}
 
-	tmp, err = filepath.Rel(filepath.Join(gopath, "src"), path)
+	tmp, err = filepath.Rel(gopathsrc, path)
 	if err != nil {
 		return path, err
 	}
