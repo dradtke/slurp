@@ -34,7 +34,7 @@ type Log interface {
 var Flags = log.Ltime
 
 func New() Log {
-	l := log.New(os.Stdout, "", Flags)
+	l := log.New(os.Stdout, " ", Flags)
 	return &logger{l, ""}
 }
 
