@@ -16,12 +16,11 @@ type C struct {
 
 type Stage func(<-chan File, chan<- File)
 
-func (j Stage) pipe(p <-chan File) Pipe {
-	//func (p Pipe) Pipe(j Stage) Pipe {
+func (stage Stage) pipe(in <-chan File) Pipe {
 	out := make(chan File)
 	go func() {
-		defer close(out)
-		j(p, out)
+		stage(in, out)
+		close(out)
 	}()
 
 	return out
@@ -33,14 +32,14 @@ type Pipe <-chan File
 
 // Pipes the current Channel to the give list of Stages and returns the 
 // last jobs otput pipe.
-func (p Pipe) Pipe(j ...Stage) Pipe {
-	switch len(j) {
+func (p Pipe) Pipe(stages ...Stage) Pipe {
+	switch len(stages) {
 	case 0:
 		return p
 	case 1:
-		return j[0].pipe(p)
+		return stages[0].pipe(p)
 	default:
-		return j[0].pipe(p).Pipe(j[1:]...)
+		return stages[0].pipe(p).Pipe(stages[1:]...)
 	}
 }
 
@@ -57,6 +56,6 @@ func (p Pipe) Wait() error {
 }
 
 //This is a combination of p.Pipe(....).Wait()
-func (p Pipe) Then(j ...Stage) error {
-  return p.Pipe(j...).Wait()
+func (p Pipe) Then(stages ...Stage) error {
+  return p.Pipe(stages...).Wait()
 }
