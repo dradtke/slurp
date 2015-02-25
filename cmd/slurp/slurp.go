@@ -170,7 +170,7 @@ func generate() (string, error) {
 		return path, errors.New("Error: Multiple packages detected.")
 	}
 
-	_, ok := pkgs["main"]
+	main, ok := pkgs["main"]
 
 	if ok {
 		//Create the target package directory.
@@ -180,45 +180,37 @@ func generate() (string, error) {
 			return path, err
 		}
 
-		for _, pkg := range pkgs {
-			for file, f := range pkg.Files {
-				name, err := filepath.Rel(cwd, file)
-				if err != nil {
-					//Should never get error. But just incase.
-					return path, err
-				}
-				dstfile, err := os.Create(filepath.Join(tmp, name))
-				if err != nil {
-					return path, err
-				}
-				defer dstfile.Close()
-				srcfile, err := os.Open(file)
-				if err != nil {
-					return path, err
-				}
-				defer srcfile.Close()
-				_, err = io.Copy(dstfile, srcfile)
-				if err != nil {
-					return path, err
-				}
+		for file, f := range main.Files {
+			name, err := filepath.Rel(cwd, file)
+			if err != nil {
+				//Should never get error. But just incase.
+				return path, err
+			}
+			dstfile, err := os.Create(filepath.Join(tmp, name))
+			if err != nil {
+				return path, err
+			}
+			defer dstfile.Close()
+			srcfile, err := os.Open(file)
+			if err != nil {
+				return path, err
+			}
+			defer srcfile.Close()
+			_, err = io.Copy(dstfile, srcfile)
+			if err != nil {
+				return path, err
+			}
 
-				err = dstfile.Sync()
-				if err != nil {
-					return path, err
-				}
+			pos := fset.Position(f.Name.NamePos)
 
-				pos := fset.Position(f.Name.NamePos)
+			_, err = dstfile.Seek(int64(pos.Offset), 0)
+			if err != nil {
+				return path, err
+			}
 
-				_, err = dstfile.Seek(int64(pos.Offset), 0)
-				if err != nil {
-					return path, err
-				}
-
-				_, err = dstfile.Write([]byte(`niam`))
-				if err != nil {
-					return path, err
-				}
-
+			_, err = dstfile.Write([]byte(`niam`))
+			if err != nil {
+				return path, err
 			}
 		}
 
