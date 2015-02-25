@@ -4,9 +4,9 @@ import (
 	"errors"
 	"flag"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -42,19 +42,17 @@ func main() {
 
 func run() error {
 	path, err := generate()
-	runnerpath := filepath.Join(path, "runner")
 	if err != nil {
 		return err
 	}
 
 	//Don't forget to clean up.
 	if !*keep {
-		//	defer os.RemoveAll(path)
+		defer os.RemoveAll(path)
 	}
 
-	//if len(params) > 0 && params[0] == "init"
 	get := exec.Command("go", "get", "-tags=slurp", "-v")
-	get.Dir = filepath.Join(path, "tmp")
+	get.Dir = path
 	get.Stdin = os.Stdin
 	get.Stdout = os.Stdout
 	get.Stderr = os.Stderr
@@ -69,10 +67,10 @@ func run() error {
 	var args []string
 
 	if *build {
-		args = []string{"build", "-tags=slurp", "-o=slurp-bin", runnerpath}
+		args = []string{"build", "-tags=slurp", "-o=slurp-bin", path}
 
 	} else if *install {
-		args = []string{"install", "-tags=slurp", runnerpath}
+		args = []string{"install", "-tags=slurp", path}
 
 	} else {
 		params := flag.Args()
@@ -84,7 +82,7 @@ func run() error {
 			}
 		}
 
-		args = []string{"run", "-tags=slurp", filepath.Join(runnerpath, "main.go")}
+		args = []string{"run", "-tags=slurp", filepath.Join(path, "main.go")}
 		args = append(args, params...)
 	}
 
@@ -136,17 +134,8 @@ func generate() (string, error) {
 	os.RemoveAll(path)
 
 	//log.Println("Creating temporary build path...", path)
-
-	//Create the target package directory.
-	tmp := filepath.Join(path, "tmp")
-	err = os.MkdirAll(tmp, 0700)
-	if err != nil {
-		return path, err
-	}
-
 	//Create the runner package directory.
-	runnerpath := filepath.Join(path, "runner")
-	err = os.Mkdir(runnerpath, 0700)
+	err = os.MkdirAll(path, 0700)
 	if err != nil {
 		return path, err
 	}
@@ -162,7 +151,7 @@ func generate() (string, error) {
 
 	if *bare {
 		pkgs = make(map[string]*ast.Package)
-		src, err := parser.ParseFile(fset, *slurpfile, nil, parser.ParseComments)
+		src, err := parser.ParseFile(fset, *slurpfile, nil, parser.PackageClauseOnly)
 		if err != nil {
 			return path, err
 		}
@@ -171,7 +160,7 @@ func generate() (string, error) {
 			Files: map[string]*ast.File{filepath.Join(cwd, *slurpfile): src},
 		}
 	} else {
-		pkgs, err = parser.ParseDir(fset, cwd, nil, parser.ParseComments)
+		pkgs, err = parser.ParseDir(fset, cwd, nil, parser.PackageClauseOnly)
 		if err != nil {
 			return path, err
 		}
@@ -181,34 +170,70 @@ func generate() (string, error) {
 		return path, errors.New("Error: Multiple packages detected.")
 	}
 
-	for _, pkg := range pkgs {
-		for name, f := range pkg.Files {
-			f.Name.Name = "tmp" //Change package name
+	_, ok := pkgs["main"]
 
-			name, err = filepath.Rel(cwd, name)
-			if err != nil {
-				//Should never get error. But just incase.
-				return path, err
-			}
-			err = writeFileSet(filepath.Join(tmp, name), fset, f)
-			if err != nil {
-				return path, err
+	if ok {
+		//Create the target package directory.
+		tmp := filepath.Join(path, "tmp")
+		err = os.Mkdir(tmp, 0700)
+		if err != nil {
+			return path, err
+		}
+
+		for _, pkg := range pkgs {
+			for file, f := range pkg.Files {
+				name, err := filepath.Rel(cwd, file)
+				if err != nil {
+					//Should never get error. But just incase.
+					return path, err
+				}
+				dstfile, err := os.Create(filepath.Join(tmp, name))
+				if err != nil {
+					return path, err
+				}
+				defer dstfile.Close()
+				srcfile, err := os.Open(file)
+				if err != nil {
+					return path, err
+				}
+				defer srcfile.Close()
+				_, err = io.Copy(dstfile, srcfile)
+				if err != nil {
+					return path, err
+				}
+
+				err = dstfile.Sync()
+				if err != nil {
+					return path, err
+				}
+
+				pos := fset.Position(f.Name.NamePos)
+
+				_, err = dstfile.Seek(int64(pos.Offset), 0)
+				if err != nil {
+					return path, err
+				}
+
+				_, err = dstfile.Write([]byte(`niam`))
+				if err != nil {
+					return path, err
+				}
+
 			}
 		}
+
+		pkgpath = filepath.Join("slurp", pkgpath, "tmp")
 	}
 
 	//log.Println("Generating the runner...")
-	file, err := os.Create(filepath.Join(runnerpath, "main.go"))
+	file, err := os.Create(filepath.Join(path, "main.go"))
 	if err != nil {
 		return path, err
 	}
 
-	tmp, err = filepath.Rel(gopathsrc, path)
-	if err != nil {
-		return path, err
-	}
+	//tmp = filepath.Join(tmp, "tmp")
 
-	err = runnerSrc.Execute(file, filepath.ToSlash(tmp))
+	err = runnerSrc.Execute(file, filepath.ToSlash(pkgpath))
 	if err != nil {
 		return path, err
 	}
@@ -220,14 +245,4 @@ func generate() (string, error) {
 
 	return path, nil
 
-}
-
-func writeFileSet(filepath string, fset *token.FileSet, node interface{}) error {
-	// Print the modified AST.
-	file, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return format.Node(file, fset, node)
 }

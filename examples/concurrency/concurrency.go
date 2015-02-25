@@ -1,6 +1,7 @@
 // +build slurp
 
-package main //Anything, even main.
+package main
+//Anything, even main.
 
 import (
 	"errors"
