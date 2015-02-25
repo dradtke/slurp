@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -25,6 +26,13 @@ var (
 
 	keep = flag.Bool("keep", false, "keep the generated source under $GOPATH/src/slurp-run-*")
 )
+
+func init() {
+	maxprocs := runtime.NumCPU()
+	if maxprocs > 2 {
+		runtime.GOMAXPROCS(maxprocs / 2)
+	}
+}
 
 func main() {
 
