@@ -19,7 +19,12 @@ func Slurp(b *slurp.Build) {
 		return errors.New("I died.")
 	})
 
-	b.Task("rabbit", nil, func(c *slurp.C) error {
+	b.Task("medic", nil, func(c *slurp.C) error {
+	  c.Info("I might be able to help, Go ahead.")
+	  return nil
+	})
+
+	b.Task("rabbit", []string{"medic"}, func(c *slurp.C) error {
 		c.Info("Hello, I am the the fast one.")
 		for i := 0; i < 4; i++ {
 			c.Infof("This is the %d line of my work.", i)

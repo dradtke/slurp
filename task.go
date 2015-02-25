@@ -25,10 +25,10 @@ func (t *task) run(c *C) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	//if t.called {
-	//		return nil
-	//	}
-	c.Info("Starting.")
+	if t.name != "default" {
+		c = &C{c.New(fmt.Sprintf("%s: ", t.name))}
+		c.Info("Starting.")
+	}
 
 	failed := make(chan string)
 	cancel := make(chan struct{}, len(t.deps))
@@ -45,7 +45,6 @@ func (t *task) run(c *C) error {
 				go func(t *task, name string) {
 					defer wg.Done()
 					c.Infof("Waiting for %s", name)
-					c := &C{c.New(fmt.Sprintf("%s: ", name))}
 					err := t.run(c)
 					if err != nil {
 						c.Error(err)
@@ -60,8 +59,8 @@ func (t *task) run(c *C) error {
 	var failedjobs []string
 
 	for job := range failed {
-			cancel <- struct{}{}
-			failedjobs = append(failedjobs, job)
+		cancel <- struct{}{}
+		failedjobs = append(failedjobs, job)
 	}
 
 	if len(failedjobs) > 0 {
