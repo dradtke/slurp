@@ -9,7 +9,8 @@ Building with Go, easier than a slurp.
 
 [![GoDoc](https://godoc.org/github.com/omeid/slurp?status.svg)](https://godoc.org/github.com/omeid/slurp)
 
-> Heads up! This is pre-release software.  
+> Heads up! while the API is fairly stable now, slurp is still actively developed.
+
 
 Slurp is a [Gulp.js](http://gulpjs.com/) inspired build toolkit designed with idiomatic Go [Pipelines](http://blog.golang.org/pipelines) and following principles: 
 
@@ -37,7 +38,7 @@ Here is the key features that I want but couldn't find any build system that Slu
 - Gulp.js and Grunt require Node.js as runtime and require npm and sometimes bower for dependency.
 - Make requires the make runner and dependencies management differs per project. 
 
-- Slurp promotes using of go implementation of build dependency, they will be automatically downloaded when you go get a project. 
+- Slurp promotes using of go implementation of build dependencies, they will be automatically downloaded when you go get a project. 
 For project dependencies Slurp takes the simplest approach, use the canonical internet paths. Duhhhh, URLs.
 
 For example, like so 
@@ -50,20 +51,16 @@ web.Get(
   fs.Dst("frontend/libs")
 )
 ```
-No need for any bower.json, package.json or bower or npm.
+No need for any bower.json, package.json or bower or npm, or Node.js.
 
-On top of all this, you can distribute your build as a binary, then you don't even need the Go toolchain anymore; this is Ideal for commercial website templates, using Slurp for a static site/blog generators and such.
+On top of all this, you can distribute your build as a binary, then you don't even need the Go toolchain anymore; Some ideal examples are commercial website templates, static site/blog generators.
 
 ##### Cross Platform
 - Makefiles, oh boy.
-- Gulp.js and Grunt are doing fine here.
-
-- Slurp it self is Cross-Platform  it is _Standing on the shoulders of giants_: Go
+- Slurp is Cross-Platform.
 
 ##### Declarative
-- Gulp.js is doing fine on this one.
 - Grunt and Make, don't ask.
-
 - Slurp is trying it's best to archives this, please look at the examples.
 
 
