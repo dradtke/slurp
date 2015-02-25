@@ -19,15 +19,6 @@ func FilterFunc(c *slurp.C, filter func(slurp.File) bool) slurp.Stage {
 	}
 }
 
-// A simple transformation slurp.Stage, sends the file to output
-// channel after passing it through the the "do" function.
-func DoFunc(c *slurp.C, do func(*slurp.C, slurp.File) slurp.File) slurp.Stage {
-	return func(files <-chan slurp.File, out chan<- slurp.File) {
-		for f := range files {
-			out <- do(c, f)
-		}
-	}
-}
 
 //Filters out files based on a pattern, if they match,
 // they will be closed, otherwise sent to the output channel.

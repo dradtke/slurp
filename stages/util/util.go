@@ -44,6 +44,17 @@ func Concat(c *slurp.C, name string) slurp.Stage {
 	}
 }
 
+// A simple transformation slurp.Stage, sends the file to output
+// channel after passing it through the the "do" function.
+func Do(do func(slurp.File) slurp.File) slurp.Stage {
+	return func(files <-chan slurp.File, out chan<- slurp.File) {
+		for f := range files {
+			out <- do(f)
+		}
+	}
+}
+
+
 //For The Glory of Debugging.
 func List(c *slurp.C) slurp.Stage {
 	return func(files <-chan slurp.File, out chan<- slurp.File) {
