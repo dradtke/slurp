@@ -1,9 +1,15 @@
-> Heads up! This is pre-release software.  
+<p align="center">
+    <img height="280" width="207" src="docs/slurp.png">
+</p>
 
-[![GoDoc](https://godoc.org/github.com/omeid/slurp?status.svg)](https://godoc.org/github.com/omeid/slurp)
+
 
 # Slurp 
 Building with Go, easier than a slurp.
+
+[![GoDoc](https://godoc.org/github.com/omeid/slurp?status.svg)](https://godoc.org/github.com/omeid/slurp)
+
+> Heads up! This is pre-release software.  
 
 Slurp is a [Gulp.js](http://gulpjs.com/) inspired build toolkit designed with idiomatic Go [Pipelines](http://blog.golang.org/pipelines) and following principles: 
 
