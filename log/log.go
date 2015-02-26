@@ -16,6 +16,9 @@ type Log interface {
 	Info(v ...interface{})
 	Infof(format string, v ...interface{})
 
+	Bold(v ...interface{})
+	Boldf(format string, v ...interface{})
+
 	Warn(v ...interface{})
 	Warnf(format string, v ...interface{})
 
@@ -49,6 +52,16 @@ type logger struct {
 
 func (l *logger) New(prefix string) Log {
 	return &logger{l.printer, l.prefix + prefix}
+}
+
+var bold = color.New(color.Bold).SprintfFunc()
+
+func (l *logger) Bold(v ...interface{}) {
+	l.printer.Printf(bold("[INFO] %s%s ", l.prefix, fmt.Sprint(v...)))
+}
+
+func (l *logger) Boldf(format string, v ...interface{}) {
+	l.Bold(fmt.Sprintf(format, v...))
 }
 
 func (l *logger) Info(v ...interface{}) {

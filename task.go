@@ -27,7 +27,7 @@ func (t *task) run(c *C) error {
 
 	if t.name != "default" {
 		c = &C{c.New(fmt.Sprintf("%s: ", t.name))}
-		c.Info("Starting.")
+		c.Bold("Starting.")
 	}
 
 	failed := make(chan string)
@@ -70,7 +70,7 @@ func (t *task) run(c *C) error {
 	//t.called = true
 	err := t.task(c)
 	if err == nil {
-		c.Info("Done.")
+		c.Bold("Done.")
 	}
 
 	return err

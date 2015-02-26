@@ -32,20 +32,20 @@ Before I explain further, I would like to clarify that even though I personally 
 
 Building frontend involves a good deal of preprocessing, some out of necessity (conctanation and minification of assets, css prefix) and some for convenience (light languages that compiles to html,css, or JavaScript), the current practical options almost always require 3rd party package mangers even for the most basic tasks like downloading a simple dependency and requires a runtime in one way or another.
 
-Here is the key features that I want but couldn't find any build system that Slurp satisifies:
+Here is the key features that I want but couldn't find any build system that satisifies:
 
 ##### Minimal Dependency
 - Gulp.js and Grunt require Node.js as runtime and require npm and sometimes bower for dependency.
 - Make requires the make runner and dependencies management differs per project. 
 
 - Slurp promotes using of go implementation of build dependencies, they will be automatically downloaded when you go get a project. 
-For project dependencies Slurp takes the simplest approach, use the canonical internet paths. Duhhhh, URLs.
+For project dependencies Slurp takes the simplest approach, using the canonical internet paths. Duhhhh, URLs.
 
 For example, like so 
 
 ```go
 web.Get( 
-  /* list of urls */
+  /* list of urls of packages */
 ).Then(
   archive.Unzip(c), 
   fs.Dst("frontend/libs")
@@ -56,12 +56,13 @@ No need for any bower.json, package.json or bower or npm, or Node.js.
 On top of all this, you can distribute your build as a binary, then you don't even need the Go toolchain anymore; Some ideal examples are commercial website templates, static site/blog generators.
 
 ##### Cross Platform
-- Makefiles, oh boy.
+- Makefiles
+  Not only you need trickery to run it on Windows, it is not even consistent across unix systems and the programs that it relies for simple tasks as downloading a file (wge vs curl) differs on per linux distro bases let alone different Unices or other OSes.
 - Slurp is Cross-Platform.
 
 ##### Declarative
-- Grunt and Make, don't ask.
-- Slurp is trying it's best to archives this, please look at the examples.
+- Grunt or Make aren't declartive by any measure.
+- Slurp is declartive.
 
 
 ---
