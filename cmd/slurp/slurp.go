@@ -10,9 +10,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 )
 
 var (
@@ -99,6 +101,16 @@ func run() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	if !*build && !*install {
+		interrupts := make(chan os.Signal, 1)
+		signal.Notify(interrupts, os.Interrupt, syscall.SIGTERM)
+
+		go func() {
+			for sig := range interrupts {
+				cmd.Process.Signal(sig)
+			}
+		}()
+	}
 	err = cmd.Run()
 
 	if err != nil {

@@ -1,18 +1,29 @@
 package slurp
 
-import "github.com/omeid/slurp/log"
+import (
+	"github.com/omeid/slurp/log"
+)
 
 type C struct {
 	log.Log
+	end <-chan struct{}
 }
 
+func (c *C) New(prefix string) *C {
+  return &C{c.Log.New(prefix), c.end}
+}
 
+// Done returns a channel that's closed when the current build is
+// canceled. You should return as soon as possible.
+// Successive calls to Done return the same value.
+func (c  *C) Done() <-chan struct{} {
+  return c.end
+}
 
 // A stage where a series of files goes for transformation, manipulation.
 // There is no correlation between a stages input and output, a stage may
 // decided to pass the same files after transofrmation or generate new files
 // based on the input.
-
 
 type Stage func(<-chan File, chan<- File)
 
@@ -26,11 +37,10 @@ func (stage Stage) pipe(in <-chan File) Pipe {
 	return out
 }
 
-
 //Pipe is a channel of Files.
 type Pipe <-chan File
 
-// Pipes the current Channel to the give list of Stages and returns the 
+// Pipes the current Channel to the give list of Stages and returns the
 // last jobs otput pipe.
 func (p Pipe) Pipe(stages ...Stage) Pipe {
 	switch len(stages) {
@@ -57,5 +67,5 @@ func (p Pipe) Wait() error {
 
 //This is a combination of p.Pipe(....).Wait()
 func (p Pipe) Then(stages ...Stage) error {
-  return p.Pipe(stages...).Wait()
+	return p.Pipe(stages...).Wait()
 }

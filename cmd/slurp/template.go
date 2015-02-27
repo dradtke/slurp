@@ -1,6 +1,6 @@
 package main
 
-import"text/template"
+import "text/template"
 
 var runnerSrc = template.Must(template.New("main").Parse(`package main
 
@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
+	"syscall"
 
 	"github.com/omeid/slurp"
 
@@ -30,14 +31,24 @@ func main() {
 	slurp := slurp.NewBuild()
 
 	interrupts := make(chan os.Signal, 1)
-	signal.Notify(interrupts, os.Interrupt)
+	signal.Notify(interrupts, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		sig := <-interrupts
 		// stop watches and clean up.
-		slurp.Warnf("captured %v, stopping build and exiting..\n", sig)
-		slurp.Close()
+		slurp.Warnf("Captured %v, stopping build and exiting..\n", sig)
+		go func() {
+		  err := slurp.Stop() 
+		  if err != nil {
+			slurp.Error(err)
+			os.Exit(1)
+		  }
+		  os.Exit(0)
+		}()
+		slurp.Warn("Press ctrl+c again to force exit.")
+		<-interrupts
 		os.Exit(1)
+
 	}()
 
 	client.Slurp(slurp)
@@ -49,6 +60,7 @@ func main() {
 
 	slurp.Infof("Running: %s", strings.Join(tasks, ","))
 	slurp.Run(slurp.C, tasks...)
-	slurp.Close()
+	slurp.Stop()
+
 }
 `))

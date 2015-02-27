@@ -13,25 +13,29 @@ type task struct {
 	deps taskstack
 	task Task
 
-	//called bool
-
 	lock sync.Mutex
-}
 
+	end     chan struct{}
+	running bool
+}
 type taskstack map[string]*task
 
 func (t *task) run(c *C) error {
 
 	t.lock.Lock()
-	defer t.lock.Unlock()
+	defer func() {
+		t.running = false
+		t.lock.Unlock()
+	}()
 
 	if t.name != "default" {
-		c = &C{c.New(fmt.Sprintf("%s: ", t.name))}
+		c = c.New(fmt.Sprintf("%s: ", t.name))
 		c.Bold("Starting.")
 	}
 
 	failed := make(chan string)
 	cancel := make(chan struct{}, len(t.deps))
+	done := make(chan struct{})
 	var wg sync.WaitGroup
 	go func(failed chan string) {
 		defer close(failed)
@@ -40,7 +44,6 @@ func (t *task) run(c *C) error {
 			case <-cancel:
 				break
 			default:
-
 				wg.Add(1)
 				go func(t *task, name string) {
 					defer wg.Done()
@@ -54,24 +57,33 @@ func (t *task) run(c *C) error {
 			}
 		}
 		wg.Wait()
+		close(done)
 	}(failed)
 
 	var failedjobs []string
 
-	for job := range failed {
+	select {
+	case <-t.end:
 		cancel <- struct{}{}
-		failedjobs = append(failedjobs, job)
+		c.Warn("Task Canacled. Reasons: Canacled build.")
+		return nil
+	case fail, ok := <-failed:
+		if ok {
+			cancel <- struct{}{}
+			failedjobs = append(failedjobs, fail)
+			//Collect all the errors.
+			for fail = range failed {
+				failedjobs = append(failedjobs, fail)
+			}
+			return fmt.Errorf("Task Canacled. Reason: Failed Dependency (%s).", strings.Join(failedjobs, ","))
+		}
+	case <-done:
 	}
 
-	if len(failedjobs) > 0 {
-		return fmt.Errorf("Task Canacled. Reason: Failed Dependency (%s).", strings.Join(failedjobs, ","))
-	}
-
-	//t.called = true
+	t.running = true
 	err := t.task(c)
 	if err == nil {
 		c.Bold("Done.")
 	}
-
 	return err
 }

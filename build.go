@@ -1,7 +1,9 @@
 package slurp
 
 import (
+	"errors"
 	"sync"
+	"time"
 
 	"github.com/omeid/slurp/log"
 )
@@ -11,34 +13,37 @@ type Waiter interface {
 	Wait()
 }
 
-
-// Build is a simple build harness that you can register tasks and their 
+// Build is a simple build harness that you can register tasks and their
 // dependencies and then run them. You usually don't need to create your
 // own Build and instead use the one passed by Slurp runner.
 type Build struct {
 	*C
-	tasks taskstack
-
+	tasks    taskstack
 	cleanups []func()
-}
 
+	end chan struct{}
+
+	lock sync.Mutex
+}
 
 func NewBuild() *Build {
-	return &Build{C: &C{log.New()}, tasks: make(taskstack)}
+	end := make(chan struct{})
+	return &Build{C: &C{log.New(), end}, tasks: make(taskstack), end: end, lock: sync.Mutex{}}
 }
-
 
 // Register a task and it's dependencies.
 // When running the task, the dependencies will be run in parallel.
 // Circular Dependencies are not allowed and will result into error.
 func (b *Build) Task(name string, deps []string, Task Task) {
 
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	if _, ok := b.tasks[name]; ok {
 		b.Fatalf("Duplicate task: %s", name)
 	}
 
 	Deps := make(taskstack)
-	t := task{name: name, deps: Deps, task: Task}
+	t := task{name: name, deps: Deps, task: Task, running: false}
 
 	for _, dep := range deps {
 		d, ok := b.tasks[dep]
@@ -64,7 +69,6 @@ func (b *Build) Run(c *C, tasks ...string) {
 // Start a task but doesn't wait for it to finish.
 func (b *Build) Start(c *C, tasks ...string) Waiter {
 	var wg sync.WaitGroup
-
 	for _, name := range tasks {
 		task, ok := b.tasks[name]
 		if !ok {
@@ -86,17 +90,73 @@ func (b *Build) Start(c *C, tasks ...string) Waiter {
 
 // Register a function to be called when Slurp exists.
 func (b *Build) Defer(fn func()) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	b.cleanups = append(b.cleanups, fn)
 }
 
-// Helper function. waits forever.
+// Depracted use slurp.C.Done
 func (b Build) Wait() {
+	b.Warn("slrup.Build.Wait is Depracted. Use slurp.C.Wait instead.")
 	<-make(chan struct{})
 }
 
-//Close a build, it will call all the cleanup functions.
-func (b *Build) Close() {
+func waitForTasks(c *C, tasks taskstack, done chan struct{}) {
+
+	running := make(map[string]struct{})
+	for _, t := range tasks {
+		if t.running {
+			running[t.name] = struct{}{}
+		}
+	}
+
+	count := len(running)
+	for count > 0 {
+		for name, _ := range running {
+			if tasks[name].running {
+				c.Boldf("Waiting for %s to finish.", name)
+			} else {
+				delete(running, name)
+			}
+		}
+		count = len(running)
+		if count > 0 {
+			time.Sleep(time.Second)
+		}
+	}
+	done <- struct{}{}
+}
+
+// Stop a build, it will call all the cleanup functions.
+// Returns an error on timeout.
+func (b *Build) Stop() error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.end == nil {
+		return errors.New("Already Cancelled.")
+	}
+
+	var err error
+	close(b.end)
+	done := make(chan struct{})
+	go waitForTasks(b.C, b.tasks, done)
+	select {
+	case <-done:
+		break
+	case <-time.Tick(time.Second * 30):
+		b.Error("Timed out.")
+		err = errors.New("Timeout.")
+		for _, t := range b.tasks {
+			if t.running && t.name != "default" {
+				b.Errorf("Task '%s' didn't honour cancellation.", t.name)
+			}
+		}
+		b.Error("Cleaning up anyways.")
+	}
+
 	for _, cleanup := range b.cleanups {
 		cleanup()
 	}
+	return err
 }
