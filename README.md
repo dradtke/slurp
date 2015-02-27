@@ -61,8 +61,6 @@ On top of all this, you can distribute your build as a binary, then you don't ev
 - Slurp is Cross-Platform.
 
 ##### Declarative
-- Grunt or Make aren't declartive by any measure.
-- Slurp is declartive.
 
 
 ---
@@ -72,37 +70,37 @@ Slurp is made of two integral parts:
 
 ### 1. The Toolkit 
 
-    The slurp toolkit provides a task harness that you can register tasks and dependencies, you can then run these tasks with slurp runner.
+The slurp toolkit provides a task harness that you can register tasks and dependencies, you can then run these tasks with slurp runner.
 
-    A task is any function that accepts a pointer to `slurp.C` (Slurp Context) and returns an error.  
-    The Context provides logging functions. _it may be extended in the future_.
+A task is any function that accepts a pointer to `slurp.C` (Slurp Context) and returns an error.  
+The Context provides logging functions. _it may be extended in the future_.
 
-    ```go
-    b.Task("example-task", []string{"list", "of", "dependency", "tasks"},
+```go
+b.Task("example-task", []string{"list", "of", "dependency", "tasks"},
 
-        func(c *slurp.C) error {
-        c.Info("Hello from example-task!")
-        },
+    func(c *slurp.C) error {
+    c.Info("Hello from example-task!")
+    },
 
-        )
-    ```
+    )
+```
 
-    Following the Convention Over Configuration paradigm, slurps provides you with a collection of nimble tools to instrument a pipeline.
+Following the Convention Over Configuration paradigm, slurps provides you with a collection of nimble tools to instrument a pipeline.
 
-    A pipeline is created by a source _stage_ and typically piped to subsequent _transformation_ stages and a final _destination_ stage.
+A pipeline is created by a source _stage_ and typically piped to subsequent _transformation_ stages and a final _destination_ stage.
 
-    Currently Slurp provides two source stages `slurp/stages/fs` and `slurp/stages/web` that provide access to file-system and http source respectively.
+Currently Slurp provides two source stages `slurp/stages/fs` and `slurp/stages/web` that provide access to file-system and http source respectively.
 
-    ```go
-    b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
-        //Read .tpl files from frontend/template.
-        return fs.Src(c, "frontend/template/*.tpl").Pipe(
-          //Compile them.
-          template.HTML(c, TemplateData),
-          //Write the result to disk.
-          fs.Dest(c, "./public"),
-          ).Wait() //Wait for all to finish.
-        })
+```go
+b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
+    //Read .tpl files from frontend/template.
+    return fs.Src(c, "frontend/template/*.tpl").Pipe(
+      //Compile them.
+      template.HTML(c, TemplateData),
+      //Write the result to disk.
+      fs.Dest(c, "./public"),
+      ).Wait() //Wait for all to finish.
+    })
 ```
 
 or the same code shorter
@@ -121,18 +119,18 @@ b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
 
 and another example,
 
-    ```go
-    // Download deps.
-    b.Task("deps", nil, func(c *slurp.C) error {
-        return web.Get(c,
-          "https://github.com/twbs/bootstrap/archive/v3.3.2.zip",
-          "https://github.com/FortAwesome/Font-Awesome/archive/v4.3.0.zip",
-          ).Then(
-            archive.Unzip(c),
-            fs.Dest(c, "./frontend/libs/"),
-            )
+```go
+// Download deps.
+b.Task("deps", nil, func(c *slurp.C) error {
+    return web.Get(c,
+      "https://github.com/twbs/bootstrap/archive/v3.3.2.zip",
+      "https://github.com/FortAwesome/Font-Awesome/archive/v4.3.0.zip",
+      ).Then(
+        archive.Unzip(c),
+        fs.Dest(c, "./frontend/libs/"),
+        )
 
-        })
+    })
 ```
 
 Currently the following _stages_ are provided with Slurp:
@@ -157,10 +155,10 @@ $ go get -u -v github.com/omeid/slurp/cmd/slurp  # get it.
 ```
 
 Slurp uses the Slurp build tag. That is, it passes `-tags=slurp` to go tooling when building or running your project,
-      this allows decoupling of build and project code. This means you can use Go tools just like you're used to, even if your
-      project has a slurp file.
+this allows decoupling of build and project code. This means you can use Go tools just like you're used to, even if your
+project has a slurp file.
 
-      Somewhat similar to `go test` Slurp expects a `Slurp(*slurp.Build)` function from your project, this is typically put in a file with the `// +build slurp` build tag.
+Somewhat similar to `go test` Slurp expects a `Slurp(*slurp.Build)` function from your project, this is typically put in a file with the `// +build slurp` build tag.
 
 ### Demo 
 
@@ -173,6 +171,9 @@ Please see [Contributing](CONTRIBUTING.md)
 ### Examples
   - The obligatory [Todo App (Slurp)](https://github.com/omeid/slurp-todo)
 
+### Credits
+
+See [Contributors](https://github.com/omeid/slurp/graphs/contributors).
 
 ### LICENSE
   [MIT](LICENSE).
