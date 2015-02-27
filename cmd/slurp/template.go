@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"fmt"
 
 	"github.com/omeid/slurp"
 
@@ -36,7 +37,8 @@ func main() {
 	go func() {
 		sig := <-interrupts
 		// stop watches and clean up.
-		slurp.Warnf("Captured %v, stopping build and exiting..\n", sig)
+		fmt.Println()
+		slurp.Warnf("Captured %v, stopping build and exiting...", sig)
 		go func() {
 		  err := slurp.Stop() 
 		  if err != nil {
