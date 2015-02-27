@@ -58,7 +58,7 @@ On top of all this, you can distribute your build as a binary, then you don't ev
 ##### Cross Platform
 - Makefiles
   Not only you need trickery to run it on Windows, it is not even consistent across unix systems and the programs that it relies for simple tasks as downloading a file (wge vs curl) differs on per linux distro bases let alone different Unices or other OSes.
-- Slurp is Cross-Platform.
+- Slurp as long as you're not executing external binaries that are not available for your target platforms, Slurp runs on any targets that Go supports.
 
 ##### Declarative
 
