@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -21,6 +22,7 @@ var (
 	gopaths = strings.Split(os.Getenv("GOPATH"), ":")
 	cwd     string
 
+	timestamp = flag.Int("timestamp", 0, "Log timestamp: 1-6.")
 	build     = flag.Bool("build", false, "build the current build as slurp-bin")
 	install   = flag.Bool("install", false, "install current slurp.Go as slurp.PKG.")
 	bare      = flag.Bool("bare", false, "Run/Install the slurp.go file without any other files.")
@@ -92,7 +94,7 @@ func run() error {
 			}
 		}
 
-		args = []string{"run", "-tags=slurp", filepath.Join(path, "main.go")}
+		args = []string{"run", "-tags=slurp", filepath.Join(path, "main.go"), fmt.Sprintf("-timestamp=%d", *timestamp)}
 		args = append(args, params...)
 	}
 

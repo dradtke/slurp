@@ -61,6 +61,15 @@ On top of all this, you can distribute your build as a binary, then you don't ev
 - Slurp as long as you're not executing external binaries that are not available for your target platforms, Slurp runs on any targets that Go supports.
 
 ##### Declarative
+Let the users judge this. :)
+
+
+##### Error handling
+Sane error handling is a must.
+
+- Gulp.js event based error handling is hard to get right and having to register an error handler per task is tedious.
+- Makefile you will endup with lots of process mangement if you want to cleanly handle a build cancelation. It is really hard to get it right.
+- Gulp.js, Grunt, Makefiles don't have any consistent way of labeling logs per task.
 
 
 ---

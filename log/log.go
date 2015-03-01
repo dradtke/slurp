@@ -34,7 +34,7 @@ type Log interface {
 	New(string) Log
 }
 
-var Flags = log.Ltime
+var Flags int
 
 func New() Log {
 	l := log.New(os.Stdout, " ", Flags)

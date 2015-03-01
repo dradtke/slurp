@@ -14,6 +14,7 @@ import (
 	"fmt"
 
 	"github.com/omeid/slurp"
+	"github.com/omeid/slurp/log"
 
 	client "{{ . }}"
 )
@@ -26,9 +27,16 @@ func init() {
 	}
 }
 
+
+var (
+  level = flag.Int("timestamp", 0, "Log timestamp: 1-6.")
+)
+
 func main() {
 
 	flag.Parse()
+	log.Flags = *level
+
 	slurp := slurp.NewBuild()
 
 	interrupts := make(chan os.Signal, 1)
