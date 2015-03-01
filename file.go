@@ -14,18 +14,19 @@ type File struct {
 	Dir  string //Dir, usually glob.Base
 	Path string //Full path.
 
-	stat os.FileInfo
+	FileInfo FileInfo
 }
 
+// Returns a copy of File.FileInfo.
+// This method is provided for interoperability with os.File consider using 
+// the following interface for a Slurp and os.File friendly API
+//
+//  type File interface {
+//    io.ReadCloser
+//    Stat() (os.FileInfo, error)
+//  }
 func (f File) Stat() (os.FileInfo, error) {
-  if f.stat == nil {
-	return nil, os.ErrInvalid
-  }
-  return f.stat, nil
-}
-
-func (f *File) SetStat(stat os.FileInfo) {
-  f.stat = stat
+  return f.FileInfo, nil
 }
 
 func (f *File) Close() error {
@@ -39,8 +40,8 @@ func Close(in interface{}) error {
 	return nil
 }
 
-func FileInfoFrom(fi os.FileInfo) *FileInfo {
-	return &FileInfo{
+func FileInfoFrom(fi os.FileInfo) FileInfo {
+	return FileInfo{
 		fi.Name(),
 		fi.Size(),
 		fi.Mode(),
@@ -61,26 +62,26 @@ type FileInfo struct {
 	sys     interface{}
 }
 
-func (f *FileInfo) Name() string {
+func (f FileInfo) Name() string {
 	return f.name
 }
-func (f *FileInfo) Size() int64 {
+func (f FileInfo) Size() int64 {
 	return f.size
 }
 
-func (f *FileInfo) Mode() os.FileMode {
+func (f FileInfo) Mode() os.FileMode {
 	return f.mode
 }
 
-func (f *FileInfo) ModTime() time.Time {
+func (f FileInfo) ModTime() time.Time {
 	return f.modTime
 }
 
-func (f *FileInfo) IsDir() bool {
+func (f FileInfo) IsDir() bool {
 	return f.isDir
 }
 
-func (f *FileInfo) Sys() interface{} {
+func (f FileInfo) Sys() interface{} {
 	return f.sys
 }
 

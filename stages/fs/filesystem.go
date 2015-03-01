@@ -25,8 +25,7 @@ func Read(path string) (*slurp.File, error) {
 		return nil, err
 	}
 
-	fs := &slurp.File{Reader: f, Path: path}
-	fs.SetStat(Stat)
+	fs := &slurp.File{Reader: f, Path: path, FileInfo: slurp.FileInfoFrom(Stat)}
 
 	return fs, nil
 }

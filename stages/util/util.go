@@ -29,18 +29,16 @@ func Concat(c *slurp.C, name string) slurp.Stage {
 			f.Close()
 		}
 
-		sf := slurp.File{
-			Reader: bigfile,
-			Dir:    "",
-			Path:   name,
+		fi := slurp.FileInfo{}
+		fi.SetSize(size)
+		fi.SetName(name)
+
+		out <- slurp.File{
+			Reader:   bigfile,
+			Dir:      "",
+			Path:     name,
+			FileInfo: fi,
 		}
-		stat := &slurp.FileInfo{}
-		stat.SetSize(size)
-		stat.SetName(name)
-
-		sf.SetStat(stat)
-
-		out <- sf
 	}
 }
 
@@ -53,7 +51,6 @@ func Do(do func(slurp.File) slurp.File) slurp.Stage {
 		}
 	}
 }
-
 
 //For The Glory of Debugging.
 func List(c *slurp.C) slurp.Stage {

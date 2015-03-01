@@ -39,11 +39,8 @@ func Get(url string) (slurp.File, error) {
 
 	name := name(url, resp)
 
-	Stat := &slurp.FileInfo{}
-	Stat.SetName(name)
-	Stat.SetSize(resp.ContentLength)
-
-	file.SetStat(Stat)
+	file.FileInfo.SetName(name)
+	file.FileInfo.SetSize(resp.ContentLength)
 
 	return file, nil
 }
