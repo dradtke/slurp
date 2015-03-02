@@ -28,7 +28,7 @@ var (
 	bare      = flag.Bool("bare", false, "Run/Install the slurp.go file without any other files.")
 	slurpfile = flag.String("slurpfile", "slurp.go", "The file that includes the Slurp(*s.Build) function, use by -bare")
 
-	keep = flag.Bool("keep", false, "keep the generated source under $GOPATH/src/slurp-run-*")
+	keep = flag.Bool("keep", false, "keep the generated source under $GOPATH/src/slurp/IMPORT/PATH")
 )
 
 func init() {
@@ -52,8 +52,12 @@ func main() {
 	}
 }
 
+func runnerpath(path string) string {
+  return filepath.Join(path, "slurp-"+filepath.Base(path))
+}
+
 func run() error {
-	path, err := generate()
+	path, pkgpath, err := generate()
 	if err != nil {
 		return err
 	}
@@ -78,11 +82,12 @@ func run() error {
 
 	var args []string
 
+	path = runnerpath(path)
+
 	if *build {
 		args = []string{"build", "-tags=slurp", "-o=slurp-bin", path}
-
 	} else if *install {
-		args = []string{"install", "-tags=slurp", path}
+		args = []string{"install", "-tags=slurp", runnerpath(pkgpath)}
 
 	} else {
 		params := flag.Args()
@@ -122,11 +127,11 @@ func run() error {
 	return nil
 }
 
-func generate() (string, error) {
+func generate() (string,string, error) {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// find the correct gopath
@@ -137,7 +142,7 @@ func generate() (string, error) {
 		// the target package import path.
 		pkgpath, err = filepath.Rel(gopathsrcTest, cwd)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		if base := filepath.Base(pkgpath); base == "." || base == ".." {
 			continue // cwd is outside this gopath
@@ -146,7 +151,7 @@ func generate() (string, error) {
 	}
 
 	if gopathsrc == "" {
-		return "", errors.New("forbidden path. Your CWD must be under $GOPATH/src.")
+		return  "", pkgpath, errors.New("forbidden path. Your CWD must be under $GOPATH/src.")
 	}
 
 	//build our package path.
@@ -159,7 +164,7 @@ func generate() (string, error) {
 	//Create the runner package directory.
 	err = os.MkdirAll(path, 0700)
 	if err != nil {
-		return path, err
+		return path, pkgpath, err
 	}
 
 	//TODO, copy [*.go !_test.go] files into tmp first,
@@ -175,7 +180,7 @@ func generate() (string, error) {
 		pkgs = make(map[string]*ast.Package)
 		src, err := parser.ParseFile(fset, *slurpfile, nil, parser.PackageClauseOnly)
 		if err != nil {
-			return path, err
+		return path, pkgpath, err
 		}
 		pkgs[src.Name.Name] = &ast.Package{
 			Name:  src.Name.Name,
@@ -184,79 +189,74 @@ func generate() (string, error) {
 	} else {
 		pkgs, err = parser.ParseDir(fset, cwd, nil, parser.PackageClauseOnly)
 		if err != nil {
-			return path, err
+		return path, pkgpath, err
 		}
 	}
 
 	if len(pkgs) > 1 {
-		return path, errors.New("Error: Multiple packages detected.")
+		return path, pkgpath,errors.New("Error: Multiple packages detected.")
 	}
 
 	main, ok := pkgs["main"]
 
 	if ok {
-		//Create the target package directory.
-		tmp := filepath.Join(path, "tmp")
-		err = os.Mkdir(tmp, 0700)
-		if err != nil {
-			return path, err
-		}
 
 		for file, f := range main.Files {
 			name, err := filepath.Rel(cwd, file)
 			if err != nil {
 				//Should never get error. But just incase.
-				return path, err
+				return path, pkgpath, err
 			}
-			dstfile, err := os.Create(filepath.Join(tmp, name))
+			dstfile, err := os.Create(filepath.Join(path, name))
 			if err != nil {
-				return path, err
+				return path, pkgpath, err
 			}
 			defer dstfile.Close()
 			srcfile, err := os.Open(file)
 			if err != nil {
-				return path, err
+				return path, pkgpath, err
 			}
 			defer srcfile.Close()
 			_, err = io.Copy(dstfile, srcfile)
 			if err != nil {
-				return path, err
+				return path, pkgpath, err
 			}
 
 			pos := fset.Position(f.Name.NamePos)
 
 			_, err = dstfile.Seek(int64(pos.Offset), 0)
 			if err != nil {
-				return path, err
+				return path, pkgpath, err
 			}
 
 			_, err = dstfile.Write([]byte(`niam`))
 			if err != nil {
-				return path, err
+				return path, pkgpath, err
 			}
 		}
 
-		pkgpath = filepath.Join("slurp", pkgpath, "tmp")
+		pkgpath = filepath.Join("slurp", pkgpath)
 	}
 
 	//log.Println("Generating the runner...")
-	file, err := os.Create(filepath.Join(path, "main.go"))
+	runner := runnerpath(path)
+	err = os.Mkdir(runner, 0700)
 	if err != nil {
-		return path, err
+	  return path, pkgpath, err
+	}
+
+	file, err := os.Create(filepath.Join(runner, "main.go"))
+	if err != nil {
+		return path, pkgpath, err
 	}
 
 	//tmp = filepath.Join(tmp, "tmp")
 
 	err = runnerSrc.Execute(file, filepath.ToSlash(pkgpath))
 	if err != nil {
-		return path, err
+		return path, pkgpath, err
 	}
 
 	err = file.Close()
-	if err != nil {
-		return path, err
-	}
-
-	return path, nil
-
+	return path, pkgpath, err
 }

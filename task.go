@@ -10,7 +10,6 @@ type Task func(*C) error
 
 type task struct {
 	name string
-	help []string
 	deps taskstack
 	task Task
 
