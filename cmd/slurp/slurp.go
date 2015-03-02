@@ -85,7 +85,7 @@ func run() error {
 	path = runnerpath(path)
 
 	if *build {
-		args = []string{"build", "-tags=slurp", "-o=slurp-bin", path}
+		args = []string{"build", "-tags=slurp", "-o=slurp-bin", runnerpath(pkgpath)}
 	} else if *install {
 		args = []string{"install", "-tags=slurp", runnerpath(pkgpath)}
 
