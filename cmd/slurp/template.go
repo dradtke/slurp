@@ -75,6 +75,7 @@ func main() {
 
 	build.Infof("Running: %s", strings.Join(tasks, ","))
 	build.Run(build.C, tasks...)
+	build.End()
 	build.Cleanup()
 }
 `))

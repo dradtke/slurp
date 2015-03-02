@@ -147,6 +147,13 @@ func (b *Build) Cleanup() {
 	}
 }
 
+// Nothing to see here, move on.
+func (b *Build) End() {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	close(b.done)
+}
+
 var help = template.Must(template.New("help").Parse(`
 USAGE:
 slurp [flags] [tasks]
@@ -162,7 +169,7 @@ HELP: {{ .name }}
 {{ end }}
 `))
 
-func (b *Build) PrintHelp(c *C, task string) {
+func (b *Build) PrintHelp(task string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	if task == "" {
@@ -174,5 +181,5 @@ func (b *Build) PrintHelp(c *C, task string) {
 		taskhelp.Execute(os.Stdout, t)
 		return
 	}
-	c.Errorf("No Such Task: %s", task)
+	b.Errorf("No Such Task: %s", task)
 }
