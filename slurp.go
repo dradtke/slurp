@@ -6,18 +6,18 @@ import (
 
 type C struct {
 	log.Log
-	end <-chan struct{}
+	done <-chan struct{}
 }
 
 func (c *C) New(prefix string) *C {
-  return &C{c.Log.New(prefix), c.end}
+  return &C{c.Log.New(prefix), c.done}
 }
 
 // Done returns a channel that's closed when the current build is
 // canceled. You should return as soon as possible.
 // Successive calls to Done return the same value.
 func (c  *C) Done() <-chan struct{} {
-  return c.end
+  return c.done
 }
 
 // A stage where a series of files goes for transformation, manipulation.

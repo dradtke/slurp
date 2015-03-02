@@ -2,7 +2,9 @@ package slurp
 
 import (
 	"errors"
+	"os"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/omeid/slurp/log"
@@ -21,14 +23,14 @@ type Build struct {
 	tasks    taskstack
 	cleanups []func()
 
-	end chan struct{}
+	done chan struct{}
 
 	lock sync.Mutex
 }
 
 func NewBuild() *Build {
-	end := make(chan struct{})
-	return &Build{C: &C{log.New(), end}, tasks: make(taskstack), end: end, lock: sync.Mutex{}}
+	done := make(chan struct{})
+	return &Build{C: &C{log.New(), done}, tasks: make(taskstack), done: done, lock: sync.Mutex{}}
 }
 
 // Register a task and it's dependencies.
@@ -101,62 +103,76 @@ func (b Build) Wait() {
 	<-make(chan struct{})
 }
 
-func waitForTasks(c *C, tasks taskstack, done chan struct{}) {
-
-	running := make(map[string]struct{})
-	for _, t := range tasks {
-		if t.running {
-			running[t.name] = struct{}{}
-		}
-	}
-
-	count := len(running)
-	for count > 0 {
-		for name, _ := range running {
-			if tasks[name].running {
-				c.Boldf("Waiting for %s to finish.", name)
-			} else {
-				delete(running, name)
-			}
-		}
-		count = len(running)
-		if count > 0 {
-			time.Sleep(time.Second)
-		}
-	}
-	done <- struct{}{}
-}
-
 // Stop a build, it will call all the cleanup functions.
 // Returns an error on timeout.
-func (b *Build) Stop() error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+func (b *Build) Cancel() <-chan error {
 
-	if b.end == nil {
-		return errors.New("Already Cancelled.")
-	}
+	errs := make(chan error)
+	go func() {
+		b.lock.Lock()
+		defer b.lock.Unlock()
+		close(b.done)
 
-	var err error
-	close(b.end)
-	done := make(chan struct{})
-	go waitForTasks(b.C, b.tasks, done)
-	select {
-	case <-done:
-		break
-	case <-time.Tick(time.Second * 30):
-		b.Error("Timed out.")
-		err = errors.New("Timeout.")
+		if b.done == nil {
+			errs <- errors.New("Already Cancelled.")
+		}
+
+		running := make(map[string]struct{})
 		for _, t := range b.tasks {
-			if t.running && t.name != "default" {
-				b.Errorf("Task '%s' didn't honour cancellation.", t.name)
+			if t.running {
+				running[t.name] = struct{}{}
 			}
 		}
-		b.Error("Cleaning up anyways.")
-	}
 
+		count := len(running)
+		for count > 0 {
+			time.Sleep(time.Second)
+			for name, _ := range running {
+				if b.tasks[name].running {
+					b.Noticef("Waiting for %s to finish.", name)
+				} else {
+					delete(running, name)
+					count--
+				}
+			}
+		}
+	}()
+	return errs
+}
+
+func (b *Build) Cleanup() {
+	<-b.done
 	for _, cleanup := range b.cleanups {
 		cleanup()
 	}
-	return err
+}
+
+var help = template.Must(template.New("help").Parse(`
+USAGE:
+slurp [flags] [tasks]
+
+TASKS:{{ range .tasks }}
+{{ .name }} {{ index .help 0 }}
+{{ end }}
+`))
+
+var taskhelp = template.Must(template.New("taskhelp").Parse(`
+HELP: {{ .name }}
+{{ range .help }} {{ . }}
+{{ end }}
+`))
+
+func (b *Build) PrintHelp(c *C, task string) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	if task == "" {
+		help.Execute(os.Stdout, b)
+		return
+	}
+	t, ok := b.tasks[task]
+	if ok {
+		taskhelp.Execute(os.Stdout, t)
+		return
+	}
+	c.Errorf("No Such Task: %s", task)
 }

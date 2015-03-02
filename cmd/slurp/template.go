@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 	log.Flags = *level
 
-	slurp := slurp.NewBuild()
+	build := slurp.NewBuild()
 
 	interrupts := make(chan os.Signal, 1)
 	signal.Notify(interrupts, os.Interrupt, syscall.SIGTERM)
@@ -45,32 +45,36 @@ func main() {
 	go func() {
 		sig := <-interrupts
 		// stop watches and clean up.
-		fmt.Println()
-		slurp.Warnf("Captured %v, stopping build and exiting...", sig)
-		go func() {
-		  err := slurp.Stop() 
+		fmt.Println() //Next line
+		build.Warnf("Captured %v, stopping build and exiting...", sig)
+		build.Warn("Press ctrl+c again to force exit.")
+		ret := 0
+		select {
+		case err := <- build.Cancel():
 		  if err != nil {
-			slurp.Error(err)
-			os.Exit(1)
+			build.Error(err)
+			build.Error("Cleaning up anyways.")
+			ret = 1
 		  }
-		  os.Exit(0)
-		}()
-		slurp.Warn("Press ctrl+c again to force exit.")
-		<-interrupts
-		os.Exit(1)
+		case <-interrupts:
+		  fmt.Println() //Next line
+		  build.Warn("Force exit.")
+		  ret = 1
+		}
+		build.Cleanup()
+		os.Exit(ret)
 
 	}()
 
-	client.Slurp(slurp)
+	client.Slurp(build)
 
 	tasks := flag.Args()
 	if len(tasks) == 0 {
 		tasks = []string{"default"}
 	}
 
-	slurp.Infof("Running: %s", strings.Join(tasks, ","))
-	slurp.Run(slurp.C, tasks...)
-	slurp.Stop()
-
+	build.Infof("Running: %s", strings.Join(tasks, ","))
+	build.Run(build.C, tasks...)
+	build.Cleanup()
 }
 `))

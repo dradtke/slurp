@@ -10,6 +10,7 @@ type Task func(*C) error
 
 type task struct {
 	name string
+	help []string
 	deps taskstack
 	task Task
 
@@ -30,7 +31,7 @@ func (t *task) run(c *C) error {
 
 	if t.name != "default" {
 		c = c.New(fmt.Sprintf("%s: ", t.name))
-		c.Bold("Starting.")
+		c.Notice("Starting.")
 	}
 
 	failed := make(chan string)
@@ -83,7 +84,7 @@ func (t *task) run(c *C) error {
 	t.running = true
 	err := t.task(c)
 	if err == nil {
-		c.Bold("Done.")
+		c.Notice("Done.")
 	}
 	return err
 }
