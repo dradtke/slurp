@@ -11,42 +11,30 @@ import (
 )
 
 type Cmd struct {
-	exec.Cmd
-
-	bin    string
-	params []string
+  *exec.Cmd
 }
 
 func Command(bin string, args ...string) *Cmd {
-	return &Cmd{
-		Cmd:    *exec.Command(bin, args...),
-		bin:    bin,
-		params: args,
-	}
+	return &Cmd{exec.Command(bin, args...)}
 }
 
-func (r *Cmd) New() *Cmd {
-	cmd := Command(r.bin, r.params...)
-	cmd.Stdout = r.Stdout
-	cmd.Stderr = r.Stderr
-
-	return cmd
-
+func (c *Cmd) New() *Cmd {
+  return Command(c.Args[0], c.Args[1:]...)
 }
 
-func (r *Cmd) Kill() error {
-	if r.Cmd.Process != nil {
+func (c *Cmd) Kill() error {
+	if c.Process != nil {
 		done := make(chan error)
 		go func() {
-			r.Cmd.Wait()
+			c.Wait()
 			close(done)
 		}()
 		//Trying a "soft" kill first
 		var err error
 		if runtime.GOOS == "windows" {
-			err = r.Cmd.Process.Kill()
+			err = c.Process.Kill()
 		} else {
-			err = r.Cmd.Process.Signal(os.Interrupt)
+			err = c.Process.Signal(os.Interrupt)
 		}
 		if err != nil {
 			return err
@@ -54,7 +42,7 @@ func (r *Cmd) Kill() error {
 		//Wait for our process to die before we return or hard kill after 3 sec
 		select {
 		case <-time.After(3 * time.Second):
-			return r.Cmd.Process.Kill()
+			return c.Process.Kill()
 		case <-done:
 		}
 	}
