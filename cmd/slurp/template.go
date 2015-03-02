@@ -54,6 +54,7 @@ func main() {
 		  if err != nil {
 			build.Error(err)
 			build.Error("Cleaning up anyways.")
+			build.Cleanup()
 			ret = 1
 		  }
 		case <-interrupts:
@@ -61,7 +62,6 @@ func main() {
 		  build.Warn("Force exit.")
 		  ret = 1
 		}
-		build.Cleanup()
 		os.Exit(ret)
 
 	}()
@@ -75,7 +75,6 @@ func main() {
 
 	build.Infof("Running: %s", strings.Join(tasks, ","))
 	build.Run(build.C, tasks...)
-	build.End()
 	build.Cleanup()
 }
 `))

@@ -22,7 +22,7 @@ type Build struct {
 	*C
 	tasks    taskstack
 	cleanups []func()
-
+	runcleanups bool
 	done chan struct{}
 
 	lock sync.Mutex
@@ -141,17 +141,15 @@ func (b *Build) Cancel() <-chan error {
 }
 
 func (b *Build) Cleanup() {
-	<-b.done
-	for _, cleanup := range b.cleanups {
-		cleanup()
-	}
-}
-
-// Nothing to see here, move on.
-func (b *Build) End() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	close(b.done)
+  b.lock.Lock()
+  defer b.lock.Unlock()
+  if b.runcleanups {
+	return
+  }
+  b.runcleanups = true
+  for _, cleanup := range b.cleanups {
+	cleanup()
+  }
 }
 
 var help = template.Must(template.New("help").Parse(`
