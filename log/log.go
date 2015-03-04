@@ -57,7 +57,7 @@ func (l *logger) New(prefix string) Log {
 var bold = color.New(color.Bold).SprintfFunc()
 
 func (l *logger) Notice(v ...interface{}) {
-	l.printer.Printf(bold("[INFO] %s%s ", l.prefix, fmt.Sprint(v...)))
+	l.printer.Printf(bold("[NOTE] %s%s ", l.prefix, fmt.Sprint(v...)))
 }
 
 func (l *logger) Noticef(format string, v ...interface{}) {
