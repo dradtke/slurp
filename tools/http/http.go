@@ -40,6 +40,7 @@ func Get(url string) (slurp.File, error) {
 	name := name(url, resp)
 
 	file.FileInfo.SetName(name)
+	file.Path = name
 	file.FileInfo.SetSize(resp.ContentLength)
 
 	return file, nil

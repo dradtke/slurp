@@ -89,13 +89,7 @@ func Dest(c *slurp.C, dst string) slurp.Stage {
 				return
 			}
 
-			s, err := file.Stat()
-			if err != nil {
-				c.Error(err)
-				return
-			}
-
-			if !s.IsDir() {
+			if !file.FileInfo.IsDir() {
 
 				wg.Add(1)
 				go func(file slurp.File) {
