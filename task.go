@@ -6,30 +6,46 @@ import (
 	"sync"
 )
 
-type Task func(*C) error
+// The type of function to call when a task is invoked.
+type Action func(*C) error
+
+type Task struct {
+	// Name of the task
+	Name string
+	// A short description of the task.
+	Usage string
+	// A long explanation of how the task works/
+	Description string
+	// List of dependencies.
+	Deps []string
+	// The function to call when the task is invoked.
+	Action Action
+}
 
 type task struct {
-	name string
-	deps taskstack
-	task Task
+	Task
+
+	deps  taskstack
 
 	lock sync.Mutex
 
-	end     chan struct{}
+	done    <-chan struct{}
 	running bool
 }
+
 type taskstack map[string]*task
 
 func (t *task) run(c *C) error {
 
 	t.lock.Lock()
+	c.Notice(t.Name)
 	defer func() {
 		t.running = false
 		t.lock.Unlock()
 	}()
 
-	if t.name != "default" {
-		c = c.New(fmt.Sprintf("%s: ", t.name))
+	if t.Name != "default" {
+		c = c.New(fmt.Sprintf("%s: ", t.Name))
 		c.Notice("Starting.")
 	}
 
@@ -39,21 +55,21 @@ func (t *task) run(c *C) error {
 	var wg sync.WaitGroup
 	go func(failed chan string) {
 		defer close(failed)
-		for name, t := range t.deps {
+		for _, t := range t.deps {
 			select {
 			case <-cancel:
 				break
 			default:
 				wg.Add(1)
-				go func(t *task, name string) {
+				go func(t *task) {
 					defer wg.Done()
-					c.Infof("Waiting for %s", name)
+					c.Infof("Waiting for %s", t.Name)
 					err := t.run(c)
 					if err != nil {
 						c.Error(err)
-						failed <- name
+						failed <- t.Name
 					}
-				}(t, name)
+				}(t)
 			}
 		}
 		wg.Wait()
@@ -63,7 +79,7 @@ func (t *task) run(c *C) error {
 	var failedjobs []string
 
 	select {
-	case <-t.end:
+	case <-t.done:
 		cancel <- struct{}{}
 		c.Warn("Task Canacled. Reasons: Canacled build.")
 		return nil
@@ -81,7 +97,7 @@ func (t *task) run(c *C) error {
 	}
 
 	t.running = true
-	err := t.task(c)
+	err := t.Action(c)
 	if err == nil {
 		c.Notice("Done.")
 	}

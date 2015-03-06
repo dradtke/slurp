@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -22,13 +21,13 @@ var (
 	gopaths = strings.Split(os.Getenv("GOPATH"), ":")
 	cwd     string
 
-	timestamp = flag.Int("timestamp", 0, "Log timestamp: 1-6.")
-	build     = flag.Bool("build", false, "build the current build as slurp-bin")
-	install   = flag.Bool("install", false, "install current slurp.Go as slurp.PKG.")
-	bare      = flag.Bool("bare", false, "Run/Install the slurp.go file without any other files.")
-	slurpfile = flag.String("slurpfile", "slurp.go", "The file that includes the Slurp(*s.Build) function, use by -bare")
+	flags     = flag.NewFlagSet("slurp", flag.ContinueOnError)
+	build     = flags.Bool("build", false, "build the current build as slurp-bin")
+	install   = flags.Bool("install", false, "install current slurp.Go as slurp.PKG.")
+	bare      = flags.Bool("bare", false, "Run/Install the slurp.go file without any other files.")
+	slurpfile = flags.String("slurpfile", "slurp.go", "The file that includes the Slurp(*s.Build) function, use by -bare")
+	keep      = flags.Bool("keep", false, "keep the generated source under $GOPATH/src/slurp/IMPORT/PATH")
 
-	keep = flag.Bool("keep", false, "keep the generated source under $GOPATH/src/slurp/IMPORT/PATH")
 )
 
 func init() {
@@ -36,11 +35,12 @@ func init() {
 	if maxprocs > 2 {
 		runtime.GOMAXPROCS(maxprocs / 2)
 	}
+	flags.Usage = func(){}
 }
 
 func main() {
 
-	flag.Parse()
+	flags.Parse(os.Args[1:])
 
 	if len(gopaths) == 0 || gopaths[0] == "" {
 		log.Fatal("$GOPATH must be set.")
@@ -53,7 +53,7 @@ func main() {
 }
 
 func runnerpath(path string) string {
-  return filepath.Join(path, "slurp-"+filepath.Base(path))
+	return filepath.Join(path, "slurp-"+filepath.Base(path))
 }
 
 func run() error {
@@ -90,7 +90,7 @@ func run() error {
 		args = []string{"install", "-tags=slurp", runnerpath(pkgpath)}
 
 	} else {
-		params := flag.Args()
+		params := os.Args[1:]
 
 		if len(params) > 0 && params[0] == "init" {
 			err := get.Run()
@@ -99,7 +99,7 @@ func run() error {
 			}
 		}
 
-		args = []string{"run", "-tags=slurp", filepath.Join(path, "main.go"), fmt.Sprintf("-timestamp=%d", *timestamp)}
+		args = []string{"run", "-tags=slurp", filepath.Join(path, "main.go")}
 		args = append(args, params...)
 	}
 
@@ -127,7 +127,7 @@ func run() error {
 	return nil
 }
 
-func generate() (string,string, error) {
+func generate() (string, string, error) {
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -151,7 +151,7 @@ func generate() (string,string, error) {
 	}
 
 	if gopathsrc == "" {
-		return  "", pkgpath, errors.New("forbidden path. Your CWD must be under $GOPATH/src.")
+		return "", pkgpath, errors.New("forbidden path. Your CWD must be under $GOPATH/src.")
 	}
 
 	//build our package path.
@@ -180,7 +180,7 @@ func generate() (string,string, error) {
 		pkgs = make(map[string]*ast.Package)
 		src, err := parser.ParseFile(fset, *slurpfile, nil, parser.PackageClauseOnly)
 		if err != nil {
-		return path, pkgpath, err
+			return path, pkgpath, err
 		}
 		pkgs[src.Name.Name] = &ast.Package{
 			Name:  src.Name.Name,
@@ -189,12 +189,12 @@ func generate() (string,string, error) {
 	} else {
 		pkgs, err = parser.ParseDir(fset, cwd, nil, parser.PackageClauseOnly)
 		if err != nil {
-		return path, pkgpath, err
+			return path, pkgpath, err
 		}
 	}
 
 	if len(pkgs) > 1 {
-		return path, pkgpath,errors.New("Error: Multiple packages detected.")
+		return path, pkgpath, errors.New("Error: Multiple packages detected.")
 	}
 
 	main, ok := pkgs["main"]
@@ -242,7 +242,7 @@ func generate() (string,string, error) {
 	runner := runnerpath(path)
 	err = os.Mkdir(runner, 0700)
 	if err != nil {
-	  return path, pkgpath, err
+		return path, pkgpath, err
 	}
 
 	file, err := os.Create(filepath.Join(runner, "main.go"))

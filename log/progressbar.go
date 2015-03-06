@@ -38,10 +38,10 @@ type ProgressBar struct {
 func (p *ProgressBar) print() {
 
 	if p.sizeHuman == "" {
-		p.l.Infof("%s [UKN%%] %s of UKN\n", p.name, humanize.Bytes(uint64(p.done)))
+		p.l.Infof("%s [UKN%%] %s of UKN", p.name, humanize.Bytes(uint64(p.done)))
 		return
 	}
-	p.l.Infof("%s [%3d%%] %s of %s\n", p.name, p.done*100/p.size, humanize.Bytes(uint64(p.done)), p.sizeHuman)
+	p.l.Infof("%s [%3d%%] %s of %s", p.name, p.done*100/p.size, humanize.Bytes(uint64(p.done)), p.sizeHuman)
 }
 func (p *ProgressBar) Read(b []byte) (int, error) {
 	n, err := p.Reader.Read(b)
@@ -84,5 +84,5 @@ func (c *Counter) Set(s int, last string) {
 }
 
 func (c *Counter) print() {
-	c.l.Infof("%s [%3d%%] %d of %d %s\n", c.name, c.cur*100/c.size, c.cur, c.size, c.last)
+	c.l.Infof("%s [%3d%%] %d of %d %s", c.name, c.cur*100/c.size, c.cur, c.size, c.last)
 }

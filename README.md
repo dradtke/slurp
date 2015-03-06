@@ -43,11 +43,11 @@ For project dependencies Slurp takes the simplest approach, using the canonical 
 For example, like so 
 
 ```go
-web.Get( 
-  /* list of urls of packages */
+web.Get(
+	packagelist...,
 ).Then(
-  archive.Unzip(c), 
-  fs.Dst("frontend/libs")
+	archive.Unzip(c),
+	fs.Dst("frontend/libs"),
 )
 ```
 No need for any bower.json, package.json or bower or npm, or Node.js.
@@ -84,13 +84,13 @@ A task is any function that accepts a pointer to `slurp.C` (Slurp Context) and r
 The Context provides logging functions. _it may be extended in the future_.
 
 ```go
-b.Task("example-task", []string{"list", "of", "dependency", "tasks"},
-
-    func(c *slurp.C) error {
-    c.Info("Hello from example-task!")
-    },
-
-    )
+b.Task(slurp.Task{
+	Name: "example-task",
+	Deps: []string{"list", "of", "dependency", "tasks"},
+	Action: func(c *slurp.C) error {
+		c.Info("Hello from example-task!")
+	},
+})
 ```
 
 Following the Convention Over Configuration paradigm, slurps provides you with a collection of nimble tools to instrument a pipeline.
@@ -100,45 +100,56 @@ A pipeline is created by a source _stage_ and typically piped to subsequent _tra
 Currently Slurp provides two source stages `slurp/stages/fs` and `slurp/stages/web` that provide access to file-system and http source respectively.
 
 ```go
-b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
-    //Read .tpl files from frontend/template.
-    return fs.Src(c, "frontend/template/*.tpl").Pipe(
-      //Compile them.
-      template.HTML(c, TemplateData),
-      //Write the result to disk.
-      fs.Dest(c, "./public"),
-      ).Wait() //Wait for all to finish.
-    })
+b.Task(slurp.Task{
+	Name:  "example-task-with-pipeline",
+	Usage: "Compile *.tpl files to html.",
+	Action: func(c *slurp.C) error {
+		//Read .tpl files from frontend/template.
+		return fs.Src(c, "frontend/template/*.tpl").Pipe(
+			//Compile them.
+			template.HTML(c, TemplateData),
+			//Write the result to disk.
+			fs.Dest(c, "./public"),
+		).Wait() //Wait for all to finish.
+	},
+})
 ```
 
 or the same code shorter
 
 ```go
-b.Task("example-task-with-pipeline", nil , func(c *slurp.C) error {
-    //Read .tpl files from frontend/template.
-    return fs.Src(c, "frontend/template/*.tpl").Then(
-      //Compile them.
-      template.HTML(c, TemplateData),
-      //Write the result to disk.
-      fs.Dest(c, "./public"),
-      )
-    })
+b.Task(slurp.Task{
+	Name:  "example-task-with-pipeline",
+	Usage: "Compile tpl files to html",
+	Action: func(c *slurp.C) error {
+		//Read .tpl files from frontend/template.
+		return fs.Src(c, "frontend/template/*.tpl").Then(
+			//Compile them.
+			template.HTML(c, TemplateData),
+			//Write the result to disk.
+			fs.Dest(c, "./public"),
+		)
+	},
+})
 ```
 
 and another example,
 
 ```go
 // Download deps.
-b.Task("deps", nil, func(c *slurp.C) error {
-    return web.Get(c,
-      "https://github.com/twbs/bootstrap/archive/v3.3.2.zip",
-      "https://github.com/FortAwesome/Font-Awesome/archive/v4.3.0.zip",
-      ).Then(
-        archive.Unzip(c),
-        fs.Dest(c, "./frontend/libs/"),
-        )
-
-    })
+b.Task(slurp.Task{
+	Name:  "deps",
+	Usage: "Download bootstrap and fontawesome.",
+	Action: func(c *slurp.C) error {
+		return web.Get(c,
+			"https://github.com/twbs/bootstrap/archive/v3.3.2.zip",
+			"https://github.com/FortAwesome/Font-Awesome/archive/v4.3.0.zip",
+		).Then(
+			archive.Unzip(c),
+			fs.Dest(c, "./frontend/libs/"),
+		)
+	},
+})
 ```
 
 Currently the following _stages_ are provided with Slurp:

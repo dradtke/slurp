@@ -1,23 +1,77 @@
 package slurp
 
 import (
-	"github.com/omeid/slurp/log"
+	"flag"
+	"fmt"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
-type C struct {
-	log.Log
-	done <-chan struct{}
-}
+var help = flag.Bool("help", false, "show help")
 
-func (c *C) New(prefix string) *C {
-  return &C{c.Log.New(prefix), c.done}
-}
+// Run setups a build and runs the listed tasks.
+func Run(client func(b *Build)) {
+	//log.Flags = *level
 
-// Done returns a channel that's closed when the current build is
-// canceled. You should return as soon as possible.
-// Successive calls to Done return the same value.
-func (c  *C) Done() <-chan struct{} {
-  return c.done
+	b := NewBuild()
+	client(b)
+
+	interrupts := make(chan os.Signal, 1)
+	signal.Notify(interrupts, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		sig := <-interrupts
+		// stop watches and clean up.
+		fmt.Println() //Next line
+		b.Warnf("Captured %v, stopping build and exiting...", sig)
+		b.Warn("Press ctrl+c again to force exit.")
+		ret := 0
+		select {
+		case err := <-b.Cancel():
+			if err != nil {
+				b.Error(err)
+				b.Error("Cleaning up anyways.")
+				b.Cleanup()
+				ret = 1
+			}
+		case <-interrupts:
+			fmt.Println() //Next line
+			b.Warn("Force exit.")
+			ret = 1
+		}
+		os.Exit(ret)
+
+	}()
+
+	flag.Parse()
+	tasks := flag.Args()
+
+	if *help {
+		if len(tasks) == 0 {
+			HelpTemplate.ExecuteTemplate(os.Stdout, "build", b)
+			return
+		}
+
+		for _, t := range tasks {
+			if t, ok := b.Tasks[t]; ok {
+				HelpTemplate.ExecuteTemplate(os.Stdout, "task", t)
+				continue
+			}
+			b.Fatalf("No Such Task: %s", t)
+		}
+
+		return
+	}
+
+	if len(tasks) == 0 {
+		tasks = []string{"default"}
+	}
+
+	b.Infof("Running: %s", strings.Join(tasks, ","))
+	b.Start(b.C, tasks...).Wait()
+	b.Cleanup()
 }
 
 // A stage where a series of files goes for transformation, manipulation.

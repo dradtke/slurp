@@ -2,9 +2,7 @@ package slurp
 
 import (
 	"errors"
-	"os"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/omeid/slurp/log"
@@ -20,59 +18,78 @@ type Waiter interface {
 // own Build and instead use the one passed by Slurp runner.
 type Build struct {
 	*C
-	tasks    taskstack
-	cleanups []func()
-	runcleanups bool
-	done chan struct{}
+	// The name of the program. Defaults to os.Args[0]
+	Name string
+	// Description of the program.
+	Usage string
+	// Version of the program
+	Version string
+	// Author
+	Author string
+	// Author e-mail
+	Email string
 
+	Tasks taskstack
+
+	shortnames map[string]string
+
+	cleanups    []func()
+	runcleanups bool
+
+	done chan struct{}
 	lock sync.Mutex
 }
 
 func NewBuild() *Build {
 	done := make(chan struct{})
-	return &Build{C: &C{log.New(), done}, tasks: make(taskstack), done: done, lock: sync.Mutex{}}
+	return &Build{C: &C{Log: log.New(), done: done}, Tasks: make(taskstack), done: done, lock: sync.Mutex{}}
 }
 
-// Register a task and it's dependencies.
+// Register Tasks.
 // When running the task, the dependencies will be run in parallel.
 // Circular Dependencies are not allowed and will result into error.
-func (b *Build) Task(name string, deps []string, Task Task) {
+func (b *Build) Task(tasks ...Task) {
 
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if _, ok := b.tasks[name]; ok {
-		b.Fatalf("Duplicate task: %s", name)
-	}
-
-	Deps := make(taskstack)
-	t := task{name: name, deps: Deps, task: Task, running: false}
-
-	for _, dep := range deps {
-		d, ok := b.tasks[dep]
-		if !ok {
-			b.Fatalf("Missing Task %s. Required by Task %s.", dep, name)
-		}
-		_, ok = d.deps[name]
-		if ok {
-			b.Fatalf("Circular dependency %s requies %s and around.", d.name, name)
+	for i, T := range tasks {
+		if T.Name == "" {
+			b.Error("Task %d Missing Name.", i)
 		}
 
-		t.deps[dep] = d
+		if T.Action == nil {
+			b.Fatalf("Task %s Missing Action.", T.Name)
+		}
+
+		if T.Usage == "" {
+			b.Fatalf("Task %s Missing Usage.", T.Name)
+		}
+		
+		if _, ok := b.Tasks[T.Name]; ok {
+			b.Fatalf("Duplicate task: %s", T.Name)
+		}
+		t := &task{Task: T, deps: make(taskstack), done: b.done, running: false}
+
+		for _, dep := range t.Deps {
+			d, ok := b.Tasks[dep]
+			if !ok {
+				b.Fatalf("Missing Task %s. Required by Task %s.", dep, t.Name)
+			}
+			_, ok = d.deps[t.Name]
+			if ok {
+				b.Fatalf("Circular dependency %s requies %s and around.", d.Name, t.Name)
+			}
+			t.deps[dep] = d
+		}
+
+		b.Tasks[t.Name] = t
 	}
-
-	b.tasks[name] = &t
 }
 
-// Run Starts a task and waits for it to finish.
-func (b *Build) Run(c *C, tasks ...string) {
-	b.Start(c, tasks...).Wait()
-}
-
-// Start a task but doesn't wait for it to finish.
 func (b *Build) Start(c *C, tasks ...string) Waiter {
 	var wg sync.WaitGroup
 	for _, name := range tasks {
-		task, ok := b.tasks[name]
+		task, ok := b.Tasks[name]
 		if !ok {
 			b.Fatalf("No Such Task: %s", name)
 			break
@@ -90,17 +107,16 @@ func (b *Build) Start(c *C, tasks ...string) Waiter {
 	return &wg
 }
 
+// Run Starts a task and waits for it to finish.
+func (b *Build) Run(c *C, tasks ...string) {
+	b.Start(c, tasks...).Wait()
+}
+
 // Register a function to be called when Slurp exists.
 func (b *Build) Defer(fn func()) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	b.cleanups = append(b.cleanups, fn)
-}
-
-// Depracted use slurp.C.Done
-func (b Build) Wait() {
-	b.Warn("slrup.Build.Wait is Depracted. Use slurp.C.Wait instead.")
-	<-make(chan struct{})
 }
 
 // Stop a build, it will call all the cleanup functions.
@@ -118,9 +134,9 @@ func (b *Build) Cancel() <-chan error {
 		}
 
 		running := make(map[string]struct{})
-		for _, t := range b.tasks {
+		for _, t := range b.Tasks {
 			if t.running {
-				running[t.name] = struct{}{}
+				running[t.Name] = struct{}{}
 			}
 		}
 
@@ -128,7 +144,7 @@ func (b *Build) Cancel() <-chan error {
 		for count > 0 {
 			time.Sleep(time.Second)
 			for name, _ := range running {
-				if b.tasks[name].running {
+				if b.Tasks[name].running {
 					b.Noticef("Waiting for %s to finish.", name)
 				} else {
 					delete(running, name)
@@ -141,43 +157,13 @@ func (b *Build) Cancel() <-chan error {
 }
 
 func (b *Build) Cleanup() {
-  b.lock.Lock()
-  defer b.lock.Unlock()
-  if b.runcleanups {
-	return
-  }
-  b.runcleanups = true
-  for _, cleanup := range b.cleanups {
-	cleanup()
-  }
-}
-
-var help = template.Must(template.New("help").Parse(`
-USAGE:
-slurp [flags] [tasks]
-
-TASKS:{{ range .tasks }}
-{{ .name }} {{ index .help 0 }}
-{{ end }}
-`))
-
-var taskhelp = template.Must(template.New("taskhelp").Parse(`
-HELP: {{ .name }}
-{{ range .help }} {{ . }}
-{{ end }}
-`))
-
-func (b *Build) PrintHelp(task string) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if task == "" {
-		help.Execute(os.Stdout, b)
+	if b.runcleanups {
 		return
 	}
-	t, ok := b.tasks[task]
-	if ok {
-		taskhelp.Execute(os.Stdout, t)
-		return
+	b.runcleanups = true
+	for _, cleanup := range b.cleanups {
+		cleanup()
 	}
-	b.Errorf("No Such Task: %s", task)
 }
