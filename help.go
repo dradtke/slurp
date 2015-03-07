@@ -32,13 +32,14 @@ GLOBAL OPTIONS:
 // slurp uses text/template to render templates. You can
 // render custom help text by setting this variable.
 var TaskHelpTemplate = `TASK:
-   {{.Name}} - {{.Usage}}
-
-USAGE:
-   task {{.Name}}{{if .Flags}} [command options]{{end}} [arguments...]{{if .Description}}
+   {{.Name}} - {{.Usage}}{{if .Description}}
 
 DESCRIPTION:
-   {{.Description}}{{end}}{{if .Flags}}
+   {{.Description}}{{end}}{{if .Deps}}
+
+DEPENDENCIES:
+   {{ range .Deps }}{{ . }}
+   {{ end }}{{ end }}{{ if .Flags }}
 
 OPTIONS:
    {{range .Flags}}{{.}}
@@ -51,4 +52,3 @@ func init() {
   HelpTemplate = template.Must(template.New("build").Parse(BuildHelpTemplate))
   HelpTemplate = template.Must(HelpTemplate.New("task").Parse(TaskHelpTemplate))
 }
-
