@@ -6,7 +6,7 @@
 
 # Slurp 
 Building with Go, easier than a slurp.
-> Heads up! while the API is fairly stable now, slurp is still actively developed.
+> Heads up! This is experimental software.
 
 [![GoDoc](https://godoc.org/github.com/omeid/slurp?status.svg)](https://godoc.org/github.com/omeid/slurp)  
 [![Throughput Graph](https://graphs.waffle.io/omeid/slurp/throughput.svg)](https://waffle.io/omeid/slurp/metrics)
