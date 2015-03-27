@@ -8,8 +8,10 @@
 Building with Go, easier than a slurp.
 > Heads up! This is experimental software.
 
-[![GoDoc](https://godoc.org/github.com/omeid/slurp?status.svg)](https://godoc.org/github.com/omeid/slurp)  
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/omeid/slurp)
+ ![Project status](https://img.shields.io/badge/status-experimental-red.svg?style=flat-square)  
 [![Throughput Graph](https://graphs.waffle.io/omeid/slurp/throughput.svg)](https://waffle.io/omeid/slurp/metrics)
+
 
 Slurp is a [Gulp.js](http://gulpjs.com/) inspired build toolkit designed with idiomatic Go [Pipelines](http://blog.golang.org/pipelines) and following principles: 
 
