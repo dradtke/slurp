@@ -4,12 +4,8 @@
 
 
 
-# Slurp 
-Building with Go, easier than a slurp.
-> Heads up! This is experimental software.
-
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/omeid/slurp)
- ![Project status](https://img.shields.io/badge/status-experimental-red.svg?style=flat-square)  
+# Slurp [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/omeid/slurp) ![Project status](https://img.shields.io/badge/status-experimental-red.svg?style=flat-square) 
+Building with Go, easier than a slurp.   
 [![Throughput Graph](https://graphs.waffle.io/omeid/slurp/throughput.svg)](https://waffle.io/omeid/slurp/metrics)
 
 
