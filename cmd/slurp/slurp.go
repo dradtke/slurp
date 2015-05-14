@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	gopaths = strings.Split(os.Getenv("GOPATH"), ":")
+	gopaths = strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
 	cwd     string
 
 	flags     = flag.NewFlagSet("slurp", flag.ContinueOnError)
@@ -27,7 +27,6 @@ var (
 	bare      = flags.Bool("bare", false, "Run/Install the slurp.go file without any other files.")
 	slurpfile = flags.String("slurpfile", "slurp.go", "The file that includes the Slurp(*s.Build) function, use by -bare")
 	keep      = flags.Bool("keep", false, "keep the generated source under $GOPATH/src/slurp/IMPORT/PATH")
-
 )
 
 func init() {
@@ -35,7 +34,7 @@ func init() {
 	if maxprocs > 2 {
 		runtime.GOMAXPROCS(maxprocs / 2)
 	}
-	flags.Usage = func(){}
+	flags.Usage = func() {}
 }
 
 func main() {
