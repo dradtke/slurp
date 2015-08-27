@@ -147,6 +147,7 @@ func generate() (string, string, error) {
 			continue // cwd is outside this gopath
 		}
 		gopathsrc = gopathsrcTest
+		break
 	}
 
 	if gopathsrc == "" {
