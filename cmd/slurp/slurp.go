@@ -207,20 +207,12 @@ func generate() (string, string, error) {
 				//Should never get error. But just incase.
 				return path, pkgpath, err
 			}
-			dstfile, err := os.Create(filepath.Join(path, name))
+			srcfile, dstfile, err := copyFile(file, filepath.Join(path, name))
 			if err != nil {
 				return path, pkgpath, err
 			}
 			defer dstfile.Close()
-			srcfile, err := os.Open(file)
-			if err != nil {
-				return path, pkgpath, err
-			}
 			defer srcfile.Close()
-			_, err = io.Copy(dstfile, srcfile)
-			if err != nil {
-				return path, pkgpath, err
-			}
 
 			pos := fset.Position(f.Name.NamePos)
 
@@ -236,6 +228,26 @@ func generate() (string, string, error) {
 		}
 
 		pkgpath = filepath.Join("slurp", pkgpath)
+	}
+
+	if info, err := os.Stat("vendor"); err == nil && info.IsDir() {
+		if err := filepath.Walk("vendor", func(p string, info os.FileInfo, _ error) error {
+			if info.IsDir() {
+				return os.Mkdir(filepath.Join(path, p), 0700)
+			}
+			if !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
+				return nil
+			}
+			srcfile, dstfile, err := copyFile(p, filepath.Join(path, p))
+			if err != nil {
+				return err
+			}
+			srcfile.Close()
+			dstfile.Close()
+			return nil
+		}); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	//log.Println("Generating the runner...")
@@ -259,4 +271,22 @@ func generate() (string, string, error) {
 
 	err = file.Close()
 	return path, pkgpath, err
+}
+
+// copyFile is a helper method for copying a file to another location.
+// If err is non-nil, then the returned files must be closed by the caller.
+func copyFile(src, dest string) (srcfile *os.File, dstfile *os.File, err error) {
+	df, err := os.Create(dest)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sf, err := os.Open(src)
+	if err != nil {
+		df.Close()
+		return nil, nil, err
+	}
+
+	_, err = io.Copy(df, sf)
+	return sf, df, err
 }
