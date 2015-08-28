@@ -87,7 +87,6 @@ func run() error {
 		args = []string{"build", "-tags=slurp", "-o=slurp-bin", runnerpath(pkgpath)}
 	} else if *install {
 		args = []string{"install", "-tags=slurp", runnerpath(pkgpath)}
-
 	} else {
 		params := os.Args[1:]
 
@@ -102,7 +101,10 @@ func run() error {
 		args = append(args, params...)
 	}
 
+	log.Println(args)
+
 	cmd := exec.Command("go", args...)
+	cmd.Env = append(os.Environ(), "GO15VENDOREXPERIMENT=1")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
