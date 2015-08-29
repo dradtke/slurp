@@ -1,6 +1,7 @@
 package glob
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -53,6 +54,35 @@ func Excluded(patterns []pattern, name string) bool {
 	return false
 }
 
+// If the glob contains "/**/" (backslashes on Windows), then a filepath.Walk()
+// is performed starting at the directory determined by the path before it,
+// and each file name is checked against the path after it.
+// Otherwise, a standard filepath.Glob() is used.
+func doGlob(glob string) ([]string, error) {
+	const recurse = string(filepath.Separator)+"**"+string(filepath.Separator)
+	if index := strings.Index(glob, recurse); index != -1 {
+		var (
+			g       = glob[index+4:]
+			results = make([]string, 0)
+		)
+		if err := filepath.Walk(glob[:index], func(path string, info os.FileInfo, _ error) error {
+			m, err := Match(g, info.Name())
+			if err != nil {
+				return err
+			}
+			if m {
+				results = append(results, path)
+			}
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		return results, nil
+	}
+	// Otherwise, standard globbing.
+	return filepath.Glob(glob)
+}
+
 func Glob(globs ...string) (<-chan MatchPair, error) {
 
 	//defer close(out)
@@ -84,7 +114,7 @@ func Glob(globs ...string) (<-chan MatchPair, error) {
 				continue
 			}
 			//Patterns already checked and fs errors are ignored. so no error handling here.
-			files, _ := filepath.Glob(pattern.Glob)
+			files, _ := doGlob(pattern.Glob)
 
 			for _, file := range files {
 				if _, seen := seen[file]; seen || Excluded(patterns[i:], file) {
