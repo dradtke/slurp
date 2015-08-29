@@ -101,8 +101,6 @@ func run() error {
 		args = append(args, params...)
 	}
 
-	log.Println(args)
-
 	cmd := exec.Command("go", args...)
 	cmd.Env = append(os.Environ(), "GO15VENDOREXPERIMENT=1")
 	cmd.Stdin = os.Stdin
